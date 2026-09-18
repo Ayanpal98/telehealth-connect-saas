@@ -82,6 +82,53 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// --- Intelligence UI ---
+const IntelligencePanel = ({ medicalCase }: { medicalCase: MedicalCase }) => {
+  const intelligence = medicalCase.intelligence;
+  if (!intelligence) return null;
+  const { assessment, matches } = intelligence;
+  const emergency = assessment.urgency === 'emergency';
+  return (
+    <div className={cn('p-5 rounded-3xl border space-y-4', emergency ? 'bg-red-50 border-red-200' : 'bg-indigo-50 border-indigo-100')}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', emergency ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600')}>
+            {emergency ? <ShieldAlert className="w-5 h-5" /> : <Brain className="w-5 h-5" />}
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Care Navigation Intelligence</p>
+            <h4 className="font-black text-slate-900 mt-1">{emergency ? 'Urgent attention recommended' : 'Suggested care pathway'}</h4>
+          </div>
+        </div>
+        <span className={cn('text-[10px] font-black uppercase px-2.5 py-1 rounded-full', emergency ? 'bg-red-100 text-red-700' : 'bg-white text-indigo-700')}>
+          {assessment.urgency}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-white/80 rounded-2xl p-3 border border-white"><p className="text-[9px] font-black text-slate-400 uppercase">Suggested specialty</p><p className="text-sm font-black text-slate-800 mt-1">{assessment.recommendedSpecialty}</p></div>
+        <div className="bg-white/80 rounded-2xl p-3 border border-white"><p className="text-[9px] font-black text-slate-400 uppercase">Routing confidence</p><p className="text-sm font-black text-slate-800 mt-1">{Math.round(assessment.confidence * 100)}% · navigation only</p></div>
+      </div>
+      <p className={cn('text-xs leading-relaxed font-semibold', emergency ? 'text-red-800' : 'text-slate-700')}>{assessment.explanation}</p>
+      {emergency ? (
+        <div className="p-4 bg-white/80 rounded-2xl border border-red-100 text-xs font-bold text-red-800">Do not wait for an online consultant match if symptoms are severe or worsening. Use local emergency services or the nearest emergency department.</div>
+      ) : matches.length > 0 ? (
+        <div className="space-y-2.5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Available consultants</p>
+          {matches.map(match => (
+            <div key={match.consultantId} className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start justify-between gap-3">
+              <div className="min-w-0"><p className="text-sm font-black text-slate-900 truncate">{match.consultantName}</p><p className="text-[10px] font-bold text-indigo-600">{match.specialty || 'Clinician'}</p><div className="mt-2 space-y-1">{match.reasons.slice(0,3).map((reason,i)=><p key={i} className="text-[10px] text-slate-500 font-semibold">• {reason}</p>)}</div></div>
+              <span className="shrink-0 text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">{match.matchScore}% match</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-4 bg-white/80 rounded-2xl border border-slate-100 text-xs font-semibold text-slate-600">No currently available consultant matched this request. A clinician can review the case and route it manually.</div>
+      )}
+      <p className="text-[9px] text-slate-400 font-semibold">This automated layer supports care navigation and consultant matching. It does not diagnose conditions or prescribe treatment.</p>
+    </div>
+  );
+};
+
 // --- Components ---
 
 const LoadingScreen = () => (
