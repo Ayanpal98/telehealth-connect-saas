@@ -2324,24 +2324,43 @@ const PatientProfileSection = ({ patientId }: { patientId: string }) => {
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(true);
 
   useEffect(() => {
-    const profiles = mockDb.getProfiles();
-    const p = profiles.find(u => u.uid === patientId);
-    if (p) {
-      setProfile(p);
-      setEditedProfile(p);
-    }
+    let unsubscribe = () => {};
+    const loadProfile = async () => {
+      if (secureBackend.isAvailable()) {
+        const p = await secureBackend.getProfile(patientId);
+        if (p) {
+          setProfile(p);
+          setEditedProfile(p);
+        }
+        unsubscribe = secureBackend.subscribeToPatientCases(patientId, (nextCases) => {
+          const sorted = [...nextCases].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setPatientCases(sorted);
+        });
+        return;
+      }
 
-    // Fetch patient cases
-    const allCases = mockDb.getCases();
-    const filtered = allCases
-      .filter(c => c.patientId === patientId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    setPatientCases(filtered);
+      const profiles = mockDb.getProfiles();
+      const p = profiles.find(u => u.uid === patientId);
+      if (p) {
+        setProfile(p);
+        setEditedProfile(p);
+      }
+      const allCases = mockDb.getCases();
+      setPatientCases(allCases
+        .filter(c => c.patientId === patientId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    };
+    void loadProfile();
+    return () => unsubscribe();
   }, [patientId]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedProfile) {
-      mockDb.saveProfile(editedProfile);
+      if (secureBackend.isAvailable()) {
+        await secureBackend.saveProfile(editedProfile);
+      } else {
+        mockDb.saveProfile(editedProfile);
+      }
       setProfile(editedProfile);
       setIsEditing(false);
     }
