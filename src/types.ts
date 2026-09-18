@@ -10,6 +10,14 @@ export interface UserProfile {
   specialty?: Specialty;
   isAvailable?: boolean;
   availabilityLastChanged?: string; // ISO string
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
+  verificationSource?: string;
+  registrationNumber?: string;
+  languages?: string[];
+  consultationModes?: ('video' | 'audio' | 'chat' | 'in-person')[];
+  serviceRadiusKm?: number;
+  locality?: string;
+  acceptingNewCases?: boolean;
   location?: {
     latitude: number;
     longitude: number;
