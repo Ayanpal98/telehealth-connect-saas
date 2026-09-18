@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        firestore.get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /case-uploads/{uid}/{caseId} {
+      allow create: if signedIn() &&
+        request.auth.uid == uid &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+
+      allow read: if signedIn() &&
+        (request.auth.uid == uid ||
+         isAdmin() ||
+         firestore.get(/databases/(default)/documents/cases/$(caseId)).data.assignedConsultantId == request.auth.uid);
+
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if false;
+    }
+  }
+}
