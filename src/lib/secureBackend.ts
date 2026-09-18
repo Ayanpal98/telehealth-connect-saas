@@ -45,6 +45,14 @@ export const secureBackend = {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    const actorUid = client.auth.currentUser?.uid;
+    if (actorUid) {
+      await secureBackend.writeAuditLog({
+        caseId: ref.id,
+        action: 'case.created',
+        performedBy: actorUid,
+      });
+    }
     return ref.id;
   },
 
@@ -83,6 +91,14 @@ export const secureBackend = {
       ...updates,
       updatedAt: serverTimestamp(),
     });
+    const actorUid = client.auth.currentUser?.uid;
+    if (actorUid) {
+      await secureBackend.writeAuditLog({
+        caseId,
+        action: updates.status ? `case.updated.status.${updates.status}` : 'case.updated',
+        performedBy: actorUid,
+      });
+    }
   },
 
   writeAuditLog: async (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
