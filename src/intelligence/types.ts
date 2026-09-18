@@ -7,5 +7,5 @@ export interface IntelligenceInput { symptoms: string; requestedSpecialty?: Spec
 export interface IntelligenceAssessment {
   careCategory: CareCategory; recommendedSpecialty: Specialty; urgency: CareUrgency; redFlags: string[]; confidence: number; explanation: string;
 }
-export interface ConsultantMatch { consultantId:string; consultantName:string; specialty?:Specialty; matchScore:number; distanceKm?:number; reasons:string[]; }
+export interface ConsultantMatch { consultantId:string; consultantName:string; specialty?:Specialty; matchScore:number; distanceKm?:number; verified?:boolean; availableNow?:boolean; acceptingNewCases?:boolean; languages?:string[]; consultationModes?:('video'|'audio'|'chat'|'in-person')[]; locality?:string; reasons:string[]; }
 export interface IntelligenceResult { assessment:IntelligenceAssessment; matches:ConsultantMatch[]; nextStep:'emergency-guidance'|'consultation'; generatedAt:string; }
