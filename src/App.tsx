@@ -1871,7 +1871,7 @@ const ConsultationSection = ({ medicalCase, clinician }: { medicalCase: MedicalC
   const handleComplete = async () => {
     setIsSaving(true);
     try {
-      mockDb.updateCase(medicalCase.id, {
+      caseService.updateCase(medicalCase.id, {
         diagnosis,
         medications,
         clinicianNotes: notes,
@@ -2919,7 +2919,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
       message: `Are you sure you want to assign this case to ${targetConsultant.displayName || targetConsultant.email}?`,
       confirmText: "Assign Now",
       onConfirm: () => {
-        mockDb.updateCase(caseId, {
+        caseService.updateCase(caseId, {
           status: 'assigned',
           assignedConsultantId: targetConsultant.uid,
           assignedConsultantName: targetConsultant.displayName || targetConsultant.email,
@@ -2936,14 +2936,14 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
       confirmText: "Update Status",
       type: status === 'completed' ? "warning" : "info",
       onConfirm: () => {
-        mockDb.updateCase(caseId, { status });
+        caseService.updateCase(caseId, { status });
         addNotification(`Case status updated to ${status.toUpperCase()}`, 'success');
       }
     });
   };
 
   const toggleAvailability = () => {
-    mockAuth.updateProfile({ 
+    authService.updateProfile({ 
       isAvailable: !userProfile.isAvailable,
       availabilityLastChanged: new Date().toISOString()
     });
