@@ -75,6 +75,7 @@ import { QuickReplyMenu, InlineQuickPills, QuickReplyTarget } from './components
 import { mockAuth, mockDb } from './lib/mockDb';
 import { SPECIALTIES, Specialty } from './constants';
 import { getConsultantSuggestions, ConsultantSuggestion } from './services/routingService';
+import { runIntelligence } from './intelligence/matchingEngine';
 
 // Utility for tailwind classes
 function cn(...inputs: ClassValue[]) {
@@ -1464,17 +1465,23 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
   const confirmSubmit = async () => {
     setIsSubmitting(true);
     try {
-      mockDb.saveCase({
+      const medicalCase = {
+        id: 'pending-intelligence',
         patientId: userProfile.uid,
         patientName: userProfile.displayName || userProfile.email,
         symptoms,
         requiredSpecialty,
         location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
         imageUrl: image || undefined,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      });
+      };
+      const intelligence = runIntelligence(
+        medicalCase,
+        mockDb.getProfiles().filter(p => p.role === 'clinician')
+      );
+      mockDb.saveCase({ ...medicalCase, intelligence });
       
       // Delay for feedback
       setTimeout(() => {
