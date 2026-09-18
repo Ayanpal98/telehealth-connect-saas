@@ -1852,7 +1852,7 @@ const ConsultationSection = ({ medicalCase, clinician }: { medicalCase: MedicalC
     setIsSaving(true);
     setSaveSuccess(false);
     try {
-      void caseService.updateCase(medicalCase.id, {
+      await caseService.updateCase(medicalCase.id, {
         diagnosis,
         medications,
         clinicianNotes: notes,
