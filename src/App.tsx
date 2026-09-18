@@ -1871,7 +1871,7 @@ const ConsultationSection = ({ medicalCase, clinician }: { medicalCase: MedicalC
   const handleComplete = async () => {
     setIsSaving(true);
     try {
-      caseService.updateCase(medicalCase.id, {
+      await caseService.updateCase(medicalCase.id, {
         diagnosis,
         medications,
         clinicianNotes: notes,
@@ -5679,10 +5679,13 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const profile = mockAuth.getCurrentUser();
-      setUserProfile(profile);
-      setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const profile = await authService.getCurrentUser();
+        setUserProfile(profile);
+      } finally {
+        setLoading(false);
+      }
     };
 
     window.addEventListener('auth-change', checkAuth);
