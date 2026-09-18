@@ -116,7 +116,20 @@ const IntelligencePanel = ({ medicalCase }: { medicalCase: MedicalCase }) => {
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Available consultants</p>
           {matches.map(match => (
             <div key={match.consultantId} className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start justify-between gap-3">
-              <div className="min-w-0"><p className="text-sm font-black text-slate-900 truncate">{match.consultantName}</p><p className="text-[10px] font-bold text-indigo-600">{match.specialty || 'Clinician'}</p><div className="mt-2 space-y-1">{match.reasons.slice(0,3).map((reason,i)=><p key={i} className="text-[10px] text-slate-500 font-semibold">• {reason}</p>)}</div></div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-black text-slate-900 truncate">{match.consultantName}</p>
+                  {match.verified && <span className="inline-flex items-center gap-1 text-[9px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"><ShieldCheck className="w-3 h-3" /> Verified</span>}
+                </div>
+                <p className="text-[10px] font-bold text-indigo-600">{match.specialty || 'Clinician'}{match.locality ? ` · ${match.locality}` : ''}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {match.availableNow && <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Available now</span>}
+                  {match.distanceKm !== undefined && <span className="text-[9px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full">{match.distanceKm.toFixed(1)} km</span>}
+                  {(match.consultationModes || []).map(mode => <span key={mode} className="text-[9px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full capitalize">{mode.replace('-', ' ')}</span>)}
+                  {(match.languages || []).slice(0,2).map(language => <span key={language} className="text-[9px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full">{language}</span>)}
+                </div>
+                <div className="mt-2 space-y-1">{match.reasons.slice(0,3).map((reason,i)=><p key={i} className="text-[10px] text-slate-500 font-semibold">• {reason}</p>)}</div>
+              </div>
               <span className="shrink-0 text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">{match.matchScore}% match</span>
             </div>
           ))}
