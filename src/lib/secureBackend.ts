@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirebaseClient } from './firebaseClient';
 import { MedicalCase, UserProfile, AuditLog } from '../types';
@@ -59,6 +59,29 @@ export const secureBackend = {
     );
     return onSnapshot(q, snapshot => {
       callback(snapshot.docs.map(item => item.data() as MedicalCase));
+    });
+  },
+
+  subscribeToAssignedCases: (consultantId: string, callback: (cases: MedicalCase[]) => void) => {
+    const client = getFirebaseClient();
+    if (!client) return () => {};
+    const q = query(
+      collection(client.db, 'cases'),
+      where('assignedConsultantId', '==', consultantId),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    return onSnapshot(q, snapshot => {
+      callback(snapshot.docs.map(item => item.data() as MedicalCase));
+    });
+  },
+
+  updateCase: async (caseId: string, updates: Partial<MedicalCase>) => {
+    const client = getFirebaseClient();
+    if (!client) throw new Error('Firebase backend is not configured.');
+    await updateDoc(doc(client.db, 'cases', caseId), {
+      ...updates,
+      updatedAt: serverTimestamp(),
     });
   },
 
