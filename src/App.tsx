@@ -2942,11 +2942,12 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
     });
   };
 
-  const toggleAvailability = () => {
-    authService.updateProfile({ 
+  const toggleAvailability = async () => {
+    await authService.updateProfile({
       isAvailable: !userProfile.isAvailable,
       availabilityLastChanged: new Date().toISOString()
     });
+    window.dispatchEvent(new Event('auth-change'));
   };
 
   // Filter & Search logic
