@@ -1455,7 +1455,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
 const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, onClose: () => void }) => {
   const [symptoms, setSymptoms] = useState('');
-  const [requiredSpecialty, setRequiredSpecialty] = useState<Specialty>('General Medicine');
+  const [requiredSpecialty, setRequiredSpecialty] = useState<Specialty | undefined>(undefined);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1568,13 +1568,14 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Required Specialty
+              Preferred Specialty <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <select 
-              value={requiredSpecialty}
-              onChange={(e) => setRequiredSpecialty(e.target.value as Specialty)}
+              value={requiredSpecialty || ''}
+              onChange={(e) => setRequiredSpecialty(e.target.value ? e.target.value as Specialty : undefined)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
+              <option value="">Let care intelligence decide</option>
               {SPECIALTIES.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -1593,6 +1594,36 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
               className="w-full h-32 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
             />
           </div>
+
+          {symptoms.trim().length >= 12 && (
+            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-indigo-600" />
+                <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">Live care navigation preview</p>
+              </div>
+              {(() => {
+                const previewCase = {
+                  id: 'preview',
+                  patientId: userProfile.uid,
+                  patientName: userProfile.displayName || userProfile.email,
+                  symptoms,
+                  requiredSpecialty,
+                  location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
+                  status: 'pending' as const,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                };
+                const preview = runIntelligence(previewCase, mockDb.getProfiles().filter(p => p.role === 'clinician'));
+                return (
+                  <div className="space-y-2">
+                    <p className="text-sm font-black text-slate-900">{preview.assessment.recommendedSpecialty}</p>
+                    <p className="text-xs text-slate-600 font-semibold">{preview.assessment.explanation}</p>
+                    {preview.assessment.urgency === 'emergency' && <p className="text-xs font-black text-red-700">Potential red flag detected — normal consultant matching will be paused after submission.</p>}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
