@@ -72,7 +72,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { TeleHealthLogo } from './components/TeleHealthLogo';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { QuickReplyMenu, InlineQuickPills, QuickReplyTarget } from './components/QuickReplyMenu';
-import { mockAuth, mockDb } from './lib/mockDb';
+import { mockDb } from './lib/mockDb';
+import { authService } from './lib/authService';
+import { secureBackend } from './lib/secureBackend';
+import { caseService } from './lib/caseService';
 import { SPECIALTIES, Specialty } from './constants';
 import { getConsultantSuggestions, ConsultantSuggestion } from './services/routingService';
 import { runIntelligence } from './intelligence/matchingEngine';
@@ -242,8 +245,7 @@ const Navbar = ({ userProfile }: { userProfile: UserProfile | null }) => {
   }, []);
   
   const handleSignOut = () => {
-    mockAuth.logout();
-    window.dispatchEvent(new Event('auth-change'));
+    void authService.signOut().finally(() => window.dispatchEvent(new Event('auth-change')));
     navigate('/');
   };
 
@@ -336,7 +338,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
   const [aiIsTyping, setAiIsTyping] = useState(false);
 
   useEffect(() => {
-    return mockDb.subscribeToCases((allCases) => {
+    return caseService.subscribeToCases(userProfile, (allCases) => {
       const filtered = allCases
         .filter(c => c.patientId === userProfile.uid)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1548,9 +1550,11 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
       };
       const intelligence = runIntelligence(
         medicalCase,
-        mockDb.getProfiles().filter(p => p.role === 'clinician')
+        secureBackend.isAvailable()
+          ? []
+          : mockDb.getProfiles().filter(p => p.role === 'clinician')
       );
-      mockDb.saveCase({ ...medicalCase, intelligence });
+      await caseService.createCase({ ...medicalCase, intelligence });
       
       // Delay for feedback
       setTimeout(() => {
@@ -1848,7 +1852,7 @@ const ConsultationSection = ({ medicalCase, clinician }: { medicalCase: MedicalC
     setIsSaving(true);
     setSaveSuccess(false);
     try {
-      mockDb.updateCase(medicalCase.id, {
+      void caseService.updateCase(medicalCase.id, {
         diagnosis,
         medications,
         clinicianNotes: notes,
@@ -2865,7 +2869,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
   // Subscriptions to database
   useEffect(() => {
-    return mockDb.subscribeToCases((allCases) => {
+    return caseService.subscribeToCases(userProfile, (allCases) => {
       const sorted = [...allCases].sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -5532,15 +5536,24 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
   const [role, setRole] = useState<UserRole>('patient');
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      const mockEmail = email || `user_${Math.random().toString(36).substring(7)}@example.com`;
-      mockAuth.login(mockEmail, mockEmail.split('@')[0], role);
+    setLoginError('');
+    try {
+      const loginEmail = email || (secureBackend.isAvailable() ? '' : `user_${Math.random().toString(36).substring(7)}@example.com`);
+      if (secureBackend.isAvailable() && !password) {
+        throw new Error('Enter your password to sign in securely.');
+      }
+      await authService.signIn(loginEmail, password, loginEmail.split('@')[0], role);
       window.dispatchEvent(new Event('auth-change'));
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : 'Sign in failed.');
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -5583,6 +5596,17 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
           </div>
 
           <div className="space-y-3">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 ml-2">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={secureBackend.isAvailable() ? "Your Firebase account password" : "Demo mode — password not required"}
+              className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none transition-all font-bold text-gray-900 border-2 border-transparent focus:border-blue-600"
+            />
+          </div>
+
+          <div className="space-y-3">
             <label className="block text-xs font-black uppercase tracking-widest text-gray-400 ml-2">I am entering as a</label>
             <div className="grid grid-cols-2 gap-4">
               <button 
@@ -5617,6 +5641,8 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
               </button>
             </div>
           </div>
+
+          {loginError && <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-xs font-bold text-red-700">{loginError}</div>}
 
           <button 
             onClick={handleLogin}
