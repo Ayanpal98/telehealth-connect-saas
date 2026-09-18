@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /profiles/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /cases/{caseId} {
+      allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
+      allow read: if signedIn() &&
+        (resource.data.patientId == request.auth.uid ||
+         resource.data.assignedConsultantId == request.auth.uid ||
+         isAdmin());
+      allow update: if signedIn() &&
+        (resource.data.patientId == request.auth.uid ||
+         resource.data.assignedConsultantId == request.auth.uid ||
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+  }
+}

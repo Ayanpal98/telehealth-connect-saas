@@ -75,11 +75,72 @@ import { QuickReplyMenu, InlineQuickPills, QuickReplyTarget } from './components
 import { mockAuth, mockDb } from './lib/mockDb';
 import { SPECIALTIES, Specialty } from './constants';
 import { getConsultantSuggestions, ConsultantSuggestion } from './services/routingService';
+import { runIntelligence } from './intelligence/matchingEngine';
 
 // Utility for tailwind classes
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+// --- Intelligence UI ---
+const IntelligencePanel = ({ medicalCase }: { medicalCase: MedicalCase }) => {
+  const intelligence = medicalCase.intelligence;
+  if (!intelligence) return null;
+  const { assessment, matches } = intelligence;
+  const emergency = assessment.urgency === 'emergency';
+  return (
+    <div className={cn('p-5 rounded-3xl border space-y-4', emergency ? 'bg-red-50 border-red-200' : 'bg-indigo-50 border-indigo-100')}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', emergency ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600')}>
+            {emergency ? <ShieldAlert className="w-5 h-5" /> : <Brain className="w-5 h-5" />}
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Care Navigation Intelligence</p>
+            <h4 className="font-black text-slate-900 mt-1">{emergency ? 'Urgent attention recommended' : 'Suggested care pathway'}</h4>
+          </div>
+        </div>
+        <span className={cn('text-[10px] font-black uppercase px-2.5 py-1 rounded-full', emergency ? 'bg-red-100 text-red-700' : 'bg-white text-indigo-700')}>
+          {assessment.urgency}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-white/80 rounded-2xl p-3 border border-white"><p className="text-[9px] font-black text-slate-400 uppercase">Suggested specialty</p><p className="text-sm font-black text-slate-800 mt-1">{assessment.recommendedSpecialty}</p></div>
+        <div className="bg-white/80 rounded-2xl p-3 border border-white"><p className="text-[9px] font-black text-slate-400 uppercase">Routing confidence</p><p className="text-sm font-black text-slate-800 mt-1">{Math.round(assessment.confidence * 100)}% · navigation only</p></div>
+      </div>
+      <p className={cn('text-xs leading-relaxed font-semibold', emergency ? 'text-red-800' : 'text-slate-700')}>{assessment.explanation}</p>
+      {emergency ? (
+        <div className="p-4 bg-white/80 rounded-2xl border border-red-100 text-xs font-bold text-red-800">Do not wait for an online consultant match if symptoms are severe or worsening. Use local emergency services or the nearest emergency department.</div>
+      ) : matches.length > 0 ? (
+        <div className="space-y-2.5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Available consultants</p>
+          {matches.map(match => (
+            <div key={match.consultantId} className="bg-white rounded-2xl p-3.5 border border-slate-100 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-black text-slate-900 truncate">{match.consultantName}</p>
+                  {match.verified && <span className="inline-flex items-center gap-1 text-[9px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"><ShieldCheck className="w-3 h-3" /> Verified</span>}
+                </div>
+                <p className="text-[10px] font-bold text-indigo-600">{match.specialty || 'Clinician'}{match.locality ? ` · ${match.locality}` : ''}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {match.availableNow && <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Available now</span>}
+                  {match.distanceKm !== undefined && <span className="text-[9px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full">{match.distanceKm.toFixed(1)} km</span>}
+                  {(match.consultationModes || []).map(mode => <span key={mode} className="text-[9px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full capitalize">{mode.replace('-', ' ')}</span>)}
+                  {(match.languages || []).slice(0,2).map(language => <span key={language} className="text-[9px] font-bold bg-slate-50 text-slate-600 px-2 py-1 rounded-full">{language}</span>)}
+                </div>
+                <div className="mt-2 space-y-1">{match.reasons.slice(0,3).map((reason,i)=><p key={i} className="text-[10px] text-slate-500 font-semibold">• {reason}</p>)}</div>
+              </div>
+              <span className="shrink-0 text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">{match.matchScore}% match</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-4 bg-white/80 rounded-2xl border border-slate-100 text-xs font-semibold text-slate-600">No currently available consultant matched this request. A clinician can review the case and route it manually.</div>
+      )}
+      <p className="text-[9px] text-slate-400 font-semibold">This automated layer supports care navigation and consultant matching. It does not diagnose conditions or prescribe treatment.</p>
+    </div>
+  );
+};
 
 // --- Components ---
 
@@ -834,6 +895,14 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                         {c.symptoms}
                       </p>
                     </div>
+
+                    {c.intelligence && (
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide">
+                        <Brain className="w-3.5 h-3.5 text-indigo-500" />
+                        <span className={c.intelligence.assessment.urgency === 'emergency' ? 'text-red-600' : 'text-indigo-600'}>{c.intelligence.assessment.urgency === 'emergency' ? 'Urgent routing' : 'Care pathway identified'}</span>
+                        <span className="text-slate-400">· {c.intelligence.assessment.recommendedSpecialty}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -1258,6 +1327,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               </div>
 
               <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+                {viewingCase.intelligence && <IntelligencePanel medicalCase={viewingCase} />}
                 {viewingCase.diagnosis && (
                   <div className="p-6 bg-green-50 border border-green-100 rounded-3xl">
                     <div className="flex items-center gap-2 mb-4">
@@ -1398,7 +1468,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
 const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, onClose: () => void }) => {
   const [symptoms, setSymptoms] = useState('');
-  const [requiredSpecialty, setRequiredSpecialty] = useState<Specialty>('General Medicine');
+  const [requiredSpecialty, setRequiredSpecialty] = useState<Specialty | undefined>(undefined);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1464,17 +1534,23 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
   const confirmSubmit = async () => {
     setIsSubmitting(true);
     try {
-      mockDb.saveCase({
+      const medicalCase = {
+        id: 'pending-intelligence',
         patientId: userProfile.uid,
         patientName: userProfile.displayName || userProfile.email,
         symptoms,
         requiredSpecialty,
         location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
         imageUrl: image || undefined,
-        status: 'pending',
+        status: 'pending' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      });
+      };
+      const intelligence = runIntelligence(
+        medicalCase,
+        mockDb.getProfiles().filter(p => p.role === 'clinician')
+      );
+      mockDb.saveCase({ ...medicalCase, intelligence });
       
       // Delay for feedback
       setTimeout(() => {
@@ -1505,13 +1581,14 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Required Specialty
+              Preferred Specialty <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <select 
-              value={requiredSpecialty}
-              onChange={(e) => setRequiredSpecialty(e.target.value as Specialty)}
+              value={requiredSpecialty || ''}
+              onChange={(e) => setRequiredSpecialty(e.target.value ? e.target.value as Specialty : undefined)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
+              <option value="">Let care intelligence decide</option>
               {SPECIALTIES.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -1530,6 +1607,36 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
               className="w-full h-32 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
             />
           </div>
+
+          {symptoms.trim().length >= 12 && (
+            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-indigo-600" />
+                <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">Live care navigation preview</p>
+              </div>
+              {(() => {
+                const previewCase = {
+                  id: 'preview',
+                  patientId: userProfile.uid,
+                  patientName: userProfile.displayName || userProfile.email,
+                  symptoms,
+                  requiredSpecialty,
+                  location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
+                  status: 'pending' as const,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                };
+                const preview = runIntelligence(previewCase, mockDb.getProfiles().filter(p => p.role === 'clinician'));
+                return (
+                  <div className="space-y-2">
+                    <p className="text-sm font-black text-slate-900">{preview.assessment.recommendedSpecialty}</p>
+                    <p className="text-xs text-slate-600 font-semibold">{preview.assessment.explanation}</p>
+                    {preview.assessment.urgency === 'emergency' && <p className="text-xs font-black text-red-700">Potential red flag detected — normal consultant matching will be paused after submission.</p>}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
