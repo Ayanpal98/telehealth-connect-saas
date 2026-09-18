@@ -25,6 +25,7 @@ export interface MedicalCase {
   patientName: string;
   symptoms: string;
   requiredSpecialty?: Specialty;
+  intelligence?: import('./intelligence/types').IntelligenceResult;
   location?: {
     latitude: number;
     longitude: number;
