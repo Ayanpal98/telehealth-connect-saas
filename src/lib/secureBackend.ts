@@ -1,4 +1,5 @@
 import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirebaseClient } from './firebaseClient';
 import { MedicalCase, UserProfile, AuditLog } from '../types';
@@ -39,8 +40,16 @@ export const secureBackend = {
     const client = getFirebaseClient();
     if (!client) throw new Error('Firebase backend is not configured.');
     const ref = doc(collection(client.db, 'cases'));
+    let imageUrl = medicalCase.imageUrl;
+    if (imageUrl?.startsWith('data:')) {
+      const imageRef = storageRef(client.storage, `case-uploads/${client.auth.currentUser?.uid || 'unknown'}/${ref.id}`);
+      await uploadString(imageRef, imageUrl, 'data_url', { contentType: imageUrl.match(/^data:([^;]+);/)?.[1] || 'image/jpeg' });
+      imageUrl = await getDownloadURL(imageRef);
+    }
+
     await setDoc(ref, {
       ...medicalCase,
+      imageUrl,
       id: ref.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
