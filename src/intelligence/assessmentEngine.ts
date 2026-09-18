@@ -6,10 +6,10 @@ const keywordGroups: Array<{category:CareCategory; specialty:Specialty; words:st
   { category:'skin', specialty:'Dermatology', words:['rash','itching','skin','acne','eczema','lesion'] },
   { category:'mental-health', specialty:'Psychiatry', words:['anxiety','panic','depression','suicidal','self harm','insomnia'] },
   { category:'pediatric', specialty:'Pediatrics', words:['child','baby','infant','toddler'] },
-  { category:'respiratory', specialty:'Pulmonology', words:['breathing','breathlessness','wheezing','asthma','cough'] },
-  { category:'digestive', specialty:'Gastroenterology', words:['stomach','abdominal','vomiting','diarrhea','constipation','acid reflux'] },
+  { category:'respiratory', specialty:'General Medicine', words:['breathing','breathlessness','wheezing','asthma','cough'] },
+  { category:'digestive', specialty:'General Medicine', words:['stomach','abdominal','vomiting','diarrhea','constipation','acid reflux'] },
   { category:'neurological', specialty:'Neurology', words:['seizure','migraine','numbness','weakness','vertigo'] },
-  { category:'eye', specialty:'Ophthalmology', words:['eye pain','vision','blurry','red eye'] },
+  { category:'eye', specialty:'General Medicine', words:['eye pain','vision','blurry','red eye'] },
   { category:'musculoskeletal', specialty:'Orthopedics', words:['joint','fracture','back pain','knee pain','bone'] },
 ];
 
