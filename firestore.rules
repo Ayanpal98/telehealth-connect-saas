@@ -30,10 +30,12 @@ service cloud.firestore {
         request.resource.data.role == 'patient';
       allow update: if isAdmin() ||
         (isSelf(uid) &&
-         request.resource.data.role == resource.data.role &&
-         request.resource.data.verificationStatus == resource.data.verificationStatus &&
-         request.resource.data.verificationSource == resource.data.verificationSource &&
-         request.resource.data.registrationNumber == resource.data.registrationNumber);
+         request.resource.data.diff(resource.data).affectedKeys().hasNone([
+           'role',
+           'verificationStatus',
+           'verificationSource',
+           'registrationNumber'
+         ]));
       allow delete: if isAdmin();
     }
 
