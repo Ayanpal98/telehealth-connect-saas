@@ -882,6 +882,14 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                         {c.symptoms}
                       </p>
                     </div>
+
+                    {c.intelligence && (
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide">
+                        <Brain className="w-3.5 h-3.5 text-indigo-500" />
+                        <span className={c.intelligence.assessment.urgency === 'emergency' ? 'text-red-600' : 'text-indigo-600'}>{c.intelligence.assessment.urgency === 'emergency' ? 'Urgent routing' : 'Care pathway identified'}</span>
+                        <span className="text-slate-400">· {c.intelligence.assessment.recommendedSpecialty}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -1306,6 +1314,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               </div>
 
               <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+                {viewingCase.intelligence && <IntelligencePanel medicalCase={viewingCase} />}
                 {viewingCase.diagnosis && (
                   <div className="p-6 bg-green-50 border border-green-100 rounded-3xl">
                     <div className="flex items-center gap-2 mb-4">
