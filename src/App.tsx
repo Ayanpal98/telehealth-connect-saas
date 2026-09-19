@@ -4709,7 +4709,7 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
     }
     setBusy(true); setError('');
     try {
-      await secureBackend.registerPatient(form.email, form.password, form.fullName);
+      await secureBackend.createApplicantAccount(form.email, form.password);
       await secureBackend.submitClinicianApplication({
         fullName: form.fullName, email: form.email, phone: form.phone, specialty: form.specialty,
         registrationNumber: form.registrationNumber, locality: form.locality,
