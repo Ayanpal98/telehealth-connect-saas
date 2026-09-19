@@ -333,7 +333,7 @@ const CareJourney = ({ cases, onStart }: { cases: MedicalCase[]; onStart: () => 
   ];
   const active = stages.findIndex(s => s.active);
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="p-6 md:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Your care journey</p>
@@ -389,7 +389,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; time: string }>>([
     { 
       sender: 'ai', 
-      text: "Hello! I am your Clinova AI Assistant. I can help answer health-related questions, explain medical reports, or guide you to the right specialist. How are you feeling today?", 
+      text: "Hi — I’m Clinova’s care guidance assistant. I can help you understand your care journey, explain health information you provide, and help you navigate to the right part of Clinova. I don’t diagnose or prescribe.", 
       time: "Just now" 
     }
   ]);
@@ -517,8 +517,8 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/80 space-y-2">
           <p className="text-xs font-bold text-slate-700">Need Help?</p>
-          <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">Our patient support desk is online 24/7 for you.</p>
-          <a href="mailto:support@clinova.com" className="block text-xs font-black text-blue-600 hover:underline">Contact Support</a>
+          <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">Need help? Our support desk is available to guide you through the platform.</p>
+          <a href="mailto:support@clinova.com" className="block text-xs font-black text-blue-600 hover:underline">Contact support</a>
         </div>
       </aside>
 
@@ -533,11 +533,11 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
             <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-50/50 to-transparent rounded-bl-full" />
               <div className="space-y-2 z-10">
-                <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                <h1 className="clinova-page-title text-2xl md:text-3xl">
                   {getGreeting()}, {userProfile.displayName || userProfile.email.split('@')[0]} 👋
                 </h1>
                 <p className="text-sm md:text-base text-slate-500 max-w-xl font-semibold leading-relaxed">
-                  Manage your consultations, view prescriptions, and keep track of your healthcare journey.
+                  See what is happening now, follow your care requests, and keep your health information organised in one secure workspace.
                 </p>
               </div>
 
@@ -548,11 +548,11 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   <p className="text-xs font-black text-slate-800 mt-1">Today</p>
                 </div>
                 <div className="text-center border-x border-slate-200">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Health Status</p>
-                  <span className="inline-block text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-1">Healthy</span>
+                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Care status</p>
+                  <span className="inline-block text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-1">{activeCases > 0 ? "Care in progress" : "No active care"}</span>
                 </div>
                 <div className="text-center">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Next Appt</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">What happens next Appt</p>
                   <p className="text-xs font-black text-slate-500 mt-1">None</p>
                 </div>
               </div>
@@ -632,7 +632,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     ].map((stat, idx) => {
                       const Icon = stat.icon;
                       return (
-                        <div key={idx} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+                        <div key={idx} className="clinova-card bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
                             <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", stat.color)}>
@@ -648,13 +648,13 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 </div>
 
                 {/* 9. Healthcare Journey Progress Section */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <div className="clinova-card bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-blue-600" />
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Your Healthcare Journey</h3>
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Your care journey</h3>
                   </div>
                   <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                    Visual track of clinical milestones for your consultations.
+                    Follow the progress of each care request from intake to clinician review and follow-up.
                   </p>
 
                   <div className="grid grid-cols-4 gap-2 pt-4 relative">
@@ -662,10 +662,10 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     <div className="absolute top-[22px] left-[12%] right-[12%] h-[2px] bg-slate-100 z-0" />
                     
                     {[
-                      { step: 1, label: "Consultation", done: totalConsultations > 0, desc: "Created ticket" },
-                      { step: 2, label: "Diagnosis", done: cases.some(c => c.diagnosis), desc: "Doctor review" },
-                      { step: 3, label: "Prescription", done: totalPrescriptions > 0, desc: "Medication issued" },
-                      { step: 4, label: "Recovery Follow-up", done: false, desc: "Final check" }
+                      { step: 1, label: "Request shared", done: totalConsultations > 0, desc: "Care request created" },
+                      { step: 2, label: "Clinical review", done: cases.some(c => c.diagnosis), desc: "Clinician review" },
+                      { step: 3, label: "Care plan", done: totalPrescriptions > 0, desc: "Clinician guidance" },
+                      { step: 4, label: "Follow-up", done: false, desc: "Continue care" }
                     ].map((item, idx) => (
                       <div key={idx} className="flex flex-col items-center text-center relative z-10">
                         <div className={cn(
@@ -688,9 +688,9 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 {/* Latest active consultations teaser */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Recent Active Cases</h3>
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Active care requests</h3>
                     <button onClick={() => setView('consultations')} className="text-xs font-bold text-blue-600 hover:underline">
-                      See All Consultations →
+                      View all care requests →
                     </button>
                   </div>
 
@@ -737,12 +737,12 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                   {cases.length === 0 && (
                     <div className="bg-white p-6 rounded-3xl border border-slate-100 text-center space-y-3">
-                      <p className="text-sm text-slate-500 font-semibold">No medical consultations logged yet.</p>
+                      <p className="text-sm text-slate-500 font-semibold">No care requests yet. When you need support, start a new request and follow it here.</p>
                       <button 
                         onClick={() => setIsCreating(true)}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-blue-700 transition-all"
                       >
-                        + Start First Consultation
+                        + Start a care request
                       </button>
                     </div>
                   )}
@@ -750,19 +750,19 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
               </div>
 
-              {/* Right Column: 11. Health Snapshot, 12. Upcoming, 10. Recent Activity */}
+              {/* Right Column: 11. Health profile, 12. Upcoming, 10. Recent updates */}
               <div className="space-y-8">
                 
-                {/* 11. Health Snapshot */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                {/* 11. Health profile */}
+                <div className="clinova-card bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                     <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Health Snapshot</h3>
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Health profile</h3>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-500">Blood Group</span>
+                      <span className="text-slate-500">Blood type</span>
                       <span className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded-md font-bold">O+</span>
                     </div>
                     <div className="flex items-center justify-between text-xs font-semibold">
@@ -776,37 +776,37 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-slate-500">Primary Doctor</span>
-                      <span className="text-slate-500 font-bold italic">Not Assigned</span>
+                      <span className="text-slate-500">Care team</span>
+                      <span className="text-slate-500 font-bold italic">Not assigned</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 12. Upcoming Appointments */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                {/* 12. Upcoming Appointments & follow-up */}
+                <div className="clinova-card bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-indigo-500" />
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Appointments</h3>
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Appointments & follow-up</h3>
                   </div>
                   
                   <div className="p-4 bg-slate-50 rounded-2xl text-center space-y-2 border border-slate-100/50">
-                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">No upcoming video appointments scheduled.</p>
+                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">No upcoming appointments are scheduled.</p>
                     <button onClick={() => setIsCreating(true)} className="text-[11px] font-bold text-blue-600 hover:underline">
-                      Book a consultation
+                      Start a care request
                     </button>
                   </div>
                 </div>
 
-                {/* 10. Recent Activity */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                  <h3 className="text-base font-black text-slate-900 tracking-tight">Recent Activity</h3>
+                {/* 10. Recent updates */}
+                <div className="clinova-card bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">Recent updates</h3>
                   
                   <div className="flow-root">
                     <ul className="-mb-8">
                       {[
-                        { title: "Prescription downloaded", time: "Today", active: totalPrescriptions > 0 },
+                        { title: "Care document viewed", time: "Today", active: totalPrescriptions > 0 },
                         { title: "Consultation completed", time: "Yesterday", active: cases.some(c => c.status === 'completed') },
-                        { title: "Report uploaded", time: "March 4", active: totalReports > 0 }
+                        { title: "Health file uploaded", time: "March 4", active: totalReports > 0 }
                       ].map((act, actIdx) => (
                         <li key={actIdx}>
                           <div className="relative pb-8">
@@ -850,8 +850,8 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
           <div className="space-y-8 max-w-5xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Medical Consultations</h1>
-                <p className="text-xs text-slate-500 font-semibold mt-0.5">Browse history, check queues, or file symptoms</p>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Care requests</h1>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">Review your care requests, documents, and clinician updates in one place.</p>
               </div>
 
               {/* 6. New Consultation Button */}
@@ -922,7 +922,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => setViewingCase(c)}
-                  className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between group relative overflow-hidden h-60"
+                  className="clinova-card bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between group relative overflow-hidden h-60"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -989,7 +989,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     <ClipboardList className="w-8 h-8" />
                   </div>
                   <div className="space-y-2 max-w-sm mx-auto">
-                    <h3 className="text-lg font-black text-slate-900">🩺 No Medical Consultations Yet</h3>
+                    <h3 className="text-lg font-black text-slate-900">🩺 No Care requests Yet</h3>
                     <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                       Start your first consultation to connect with a healthcare professional.
                     </p>
@@ -1019,7 +1019,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 <div 
                   key={c.id}
                   onClick={() => setViewingCase(c)}
-                  className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between h-72"
+                  className="clinova-card bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between h-72"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1051,7 +1051,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               ))}
 
               {cases.filter(c => c.diagnosis).length === 0 && (
-                <div className="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <div className="col-span-full text-center py-20 clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
                   <FileText className="w-12 h-12 text-slate-300 mx-auto" />
                   <h3 className="text-lg font-black text-slate-900">No Medical Records Yet</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed font-semibold">
@@ -1118,7 +1118,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               ))}
 
               {cases.filter(c => c.medications && c.medications.length > 0).length === 0 && (
-                <div className="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <div className="col-span-full text-center py-20 clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
                   <Pill className="w-12 h-12 text-slate-300 mx-auto" />
                   <h3 className="text-lg font-black text-slate-900">No Prescriptions Issued</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed font-semibold">
@@ -1158,7 +1158,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               ))}
 
               {cases.filter(c => c.imageUrl).length === 0 && (
-                <div className="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <div className="col-span-full text-center py-20 clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
                   <Camera className="w-12 h-12 text-slate-300 mx-auto" />
                   <h3 className="text-lg font-black text-slate-900">No Image Reports Uploaded</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed font-semibold">
@@ -1172,7 +1172,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
         {/* VIEW: PROFILE */}
         {view === 'profile' && (
-          <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="max-w-4xl mx-auto clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
             <PatientProfileSection patientId={userProfile.uid} />
           </div>
         )}
@@ -1602,11 +1602,11 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
           <div className="p-8 md:p-10 text-center">
             <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><CheckCircle className="w-8 h-8" /></div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600 mt-6">Request submitted</p>
-            <h2 className="text-2xl font-black text-slate-900 mt-2">Your care journey has started</h2>
-            <p className="text-sm text-slate-500 font-semibold leading-relaxed mt-3">Clinova is routing your request to suitable clinicians. Your patient dashboard will update automatically when a clinician is found.</p>
+            <h2 className="text-2xl font-black text-slate-900 mt-2">Your care request is on its way</h2>
+            <p className="text-sm text-slate-500 font-semibold leading-relaxed mt-3">Clinova is matching your request to suitable clinicians. Your dashboard updates in real time as the care workflow progresses.</p>
             <div className="mt-6 p-4 rounded-2xl bg-blue-50 border border-blue-100 text-left">
-              <p className="text-xs font-black text-blue-800">Next</p>
-              <p className="text-xs font-semibold text-blue-700 mt-1">Care pathway → clinician matching → consultation</p>
+              <p className="text-xs font-black text-blue-800">What happens next</p>
+              <p className="text-xs font-semibold text-blue-700 mt-1">Care pathway → clinician matching → clinician review → consultation</p>
             </div>
             <button onClick={onClose} className="mt-7 w-full py-3.5 rounded-2xl bg-slate-900 text-white font-black">Return to dashboard</button>
           </div>
@@ -1616,10 +1616,10 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
   }
 
   const steps = [
-    { n: 1, label: 'Your concern' },
-    { n: 2, label: 'A little more' },
-    { n: 3, label: 'Location & files' },
-    { n: 4, label: 'Review & send' }
+    { n: 1, label: 'What’s going on?' },
+    { n: 2, label: 'A little more context' },
+    { n: 3, label: 'Location & documents' },
+    { n: 4, label: 'Review & submit' }
   ];
 
   return (
@@ -1628,8 +1628,8 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
         <div className="p-6 md:p-7 border-b border-slate-100">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Guided consultation</p>
-              <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">Let's understand what you need</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">New care request</p>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight mt-1">Tell us what you need help with</h2>
             </div>
             <button onClick={onClose} className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center"><Plus className="w-5 h-5 rotate-45" /></button>
           </div>
@@ -1648,12 +1648,12 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
             <div className="space-y-5">
               <div>
                 <label className="text-sm font-black text-slate-800">What are you experiencing?</label>
-                <p className="text-xs text-slate-500 font-semibold mt-1">Use your own words. You don't need to know the medical term.</p>
-                <textarea autoFocus value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={6} placeholder="For example: I've had a cough and fever for three days..." className="mt-3 w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold resize-none" />
+                <p className="text-xs text-slate-500 font-semibold mt-1">Use your own words. You do not need to know the medical term.</p>
+                <textarea autoFocus value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={6} placeholder="For example: I've had a cough and fever for three days..." className="clinova-input mt-3 w-full p-4 bg-slate-50 focus:bg-white text-sm font-semibold resize-none" />
               </div>
               <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
-                <p className="text-xs font-black text-indigo-800">You don't need to choose a doctor</p>
-                <p className="text-[11px] font-semibold text-indigo-700 mt-1">Clinova can suggest a care pathway from what you describe.</p>
+                <p className="text-xs font-black text-indigo-800">You don’t need to choose a clinician</p>
+                <p className="text-[11px] font-semibold text-indigo-700 mt-1">Clinova can suggest a care pathway from what you share. A clinician remains responsible for clinical review.</p>
               </div>
             </div>
           )}
@@ -1684,7 +1684,7 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
             <div className="space-y-5">
               <div>
                 <p className="text-sm font-black text-slate-800">Help us find the right local option</p>
-                <p className="text-xs text-slate-500 font-semibold mt-1">Location is optional and only helps with local clinician matching.</p>
+                <p className="text-xs text-slate-500 font-semibold mt-1">Location is optional and can help match you with suitable local clinicians.</p>
                 <button type="button" onClick={handleGetLocation} className="mt-3 w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-50 transition-all flex items-center justify-between">
                   <span className="flex items-center gap-3 text-sm font-black text-slate-700"><MapPin className="w-5 h-5 text-blue-600" /> {location ? 'Location added' : 'Use my current location'}</span>
                   {isLocating ? <span className="text-xs font-bold text-blue-600">Finding…</span> : location ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
@@ -1698,14 +1698,14 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
                   <span className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-600">Choose</span>
                 </label>
               </div>
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-semibold text-emerald-800">Your request will be routed to suitable clinicians. Location and uploaded evidence are used only as part of the care workflow.</div>
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-semibold text-emerald-800">Your request will be securely routed through Clinova’s care workflow. Uploaded information is used to support clinician review.</div>
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-5">
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Your concern</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">What’s going on?</p>
                 <p className="text-sm font-bold text-slate-800 mt-2 leading-relaxed">{symptoms}</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1725,7 +1725,7 @@ const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, o
           {step < 4 ? (
             <button type="button" disabled={!canContinue} onClick={() => setStep(step + 1)} className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm disabled:opacity-40 flex items-center gap-2">Continue <ArrowRight className="w-4 h-4" /></button>
           ) : (
-            <button type="button" disabled={isSubmitting} onClick={confirmSubmit} className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm disabled:opacity-50 flex items-center gap-2">{isSubmitting ? 'Sending…' : 'Send consultation request'} <Send className="w-4 h-4" /></button>
+            <button type="button" disabled={isSubmitting} onClick={confirmSubmit} className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm disabled:opacity-50 flex items-center gap-2">{isSubmitting ? 'Sending…' : 'Submit care request'} <Send className="w-4 h-4" /></button>
           )}
         </div>
       </motion.div>
@@ -1904,7 +1904,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
         );
         newRoutedCases.forEach(c => {
           addNotification(
-            `Real-time case routed: ${c.patientName} · ${c.intelligence?.assessment?.recommendedSpecialty || c.requiredSpecialty || 'General Medicine'}`,
+            `New care request routed: ${c.patientName} · ${c.intelligence?.assessment?.recommendedSpecialty || c.requiredSpecialty || 'General Medicine'}`,
             c.intelligence?.assessment?.urgency === 'emergency' ? 'warning' : 'info'
           );
         });
@@ -2029,12 +2029,12 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-[#F8FAFC] font-sans antialiased">
+    <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50 font-sans antialiased">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-slate-100 hidden md:flex flex-col p-6 justify-between shrink-0">
+      <aside className="w-64 clinova-sidebar hidden md:flex flex-col p-5 justify-between shrink-0">
         <div className="space-y-6">
           <div className="space-y-1">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Clinical Portal</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Clinova Workspace</h3>
             <p className="text-xs text-slate-500 font-medium">Dr. {userProfile.displayName || userProfile.email.split('@')[0]}</p>
           </div>
           
@@ -2123,7 +2123,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
         </AnimatePresence>
 
         {/* Header Widget */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
           {/* Subtle abstract color splash */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full filter blur-2xl -mr-16 -mt-16 pointer-events-none" />
           
@@ -2210,12 +2210,12 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
           <div className="relative z-30">
             <div className="absolute right-0 top-0 w-full sm:w-[380px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div><p className="text-sm font-black text-slate-900">Notifications</p><p className="text-[10px] text-slate-400 font-semibold mt-0.5">Real-time workspace updates</p></div>
+                <div><p className="text-sm font-black text-slate-900">Notifications</p><p className="text-[10px] text-slate-400 font-semibold mt-0.5">Live workspace updates</p></div>
                 <button onClick={() => setShowNotificationCenter(false)} className="text-xs font-bold text-slate-400 hover:text-slate-700">Close</button>
               </div>
               <div className="max-h-80 overflow-y-auto clinova-scrollbar">
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center"><Bell className="w-7 h-7 text-slate-300 mx-auto mb-2" /><p className="text-xs font-bold text-slate-500">You're all caught up.</p><p className="text-[10px] text-slate-400 mt-1">New routed cases will appear here.</p></div>
+                  <div className="p-8 text-center"><Bell className="w-7 h-7 text-slate-300 mx-auto mb-2" /><p className="text-xs font-bold text-slate-500">You’re all caught up.</p><p className="text-[10px] text-slate-400 mt-1">New routed cases will appear here.</p></div>
                 ) : notifications.slice().reverse().map(note => (
                   <div key={note.id} className="p-4 border-b border-slate-50 flex gap-3">
                     <span className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", note.type === 'warning' ? "bg-amber-500" : note.type === 'success' ? "bg-emerald-500" : "bg-blue-500")} />
@@ -2326,7 +2326,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                           setSelectedCase(c);
                           setView('queue');
                         }}
-                        className="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-blue-100"
+                        className="p-5 clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-blue-100"
                       >
                         <div className="flex items-start gap-4">
                           <div className={cn(
@@ -2370,7 +2370,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   {cases.length === 0 && (
                     <div className="p-12 text-center bg-white rounded-3xl border border-slate-100">
                       <p className="text-lg font-bold text-slate-700">🎉 No Patients Waiting</p>
-                      <p className="text-xs text-slate-400 mt-1">You're all caught up. Remain available to receive notifications.</p>
+                      <p className="text-xs text-slate-400 mt-1">You’re all caught up. Remain available to receive notifications.</p>
                     </div>
                   )}
                 </div>
@@ -2383,7 +2383,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   <p className="text-xs text-slate-500">Recent logs of clinician actions and state changes</p>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
+                <div className="clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
                   {cases.length > 0 ? (
                     <div className="space-y-4">
                       {cases.slice(0, 4).map((c, idx) => (
@@ -2817,7 +2817,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     {detailTab === 'history' && (
                       <div className="animate-in fade-in duration-200">
                         {/* Deterministic Patient Profile Card */}
-                        <div className="max-w-xl mx-auto bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="max-w-xl mx-auto clinova-card bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                           <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-blue-600 text-white font-black flex items-center justify-center text-sm shadow-md">
                               👤
@@ -2836,7 +2836,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                               </p>
                             </div>
                             <div className="border-b border-slate-100/50 pb-3">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Blood Group</p>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Blood type</p>
                               <p className="text-sm font-bold text-slate-800 mt-1">
                                 {getDeterministicPatientData(selectedCase.id, selectedCase.patientName).bloodGroup}
                               </p>
