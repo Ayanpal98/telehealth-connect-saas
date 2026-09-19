@@ -250,7 +250,7 @@ const Navbar = ({ userProfile }: { userProfile: UserProfile | null }) => {
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3">
+    <nav className="sticky top-0 z-40 w-full clinova-glass border-b border-slate-200/70 px-4 py-3 shadow-[0_1px_0_rgba(15,23,42,0.02)]">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-blue-600">
           <Activity className="w-6 h-6" />
@@ -523,7 +523,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
       </aside>
 
       {/* Main Content Pane */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 lg:pb-8">
+      <main className="flex-1 overflow-y-auto clinova-scrollbar p-4 md:p-8 pb-24 lg:pb-8">
         
         {/* VIEW: DASHBOARD */}
         {view === 'dashboard' && (
@@ -4758,7 +4758,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <div className="min-h-screen bg-gray-50 font-sans">
+        <div className="min-h-screen bg-slate-50 font-sans clinova-page">
           {userProfile && <Navbar userProfile={userProfile} />}
           <Routes>
             <Route path="/manual" element={<UserManual />} />
