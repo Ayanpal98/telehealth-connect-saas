@@ -1950,6 +1950,10 @@ const ConsultationSection = ({ medicalCase, clinician }: { medicalCase: MedicalC
           <p className="text-xs text-slate-500 font-medium mt-0.5">
             Follow the guided steps or use Quick Reply presets to provide rapid, standardized care guidance.
           </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[9px] font-black uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Real-time case routing enabled
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -2894,12 +2898,14 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
       );
 
       if (prevCasesRef.current.length > 0) {
-        const newPendingCases = sorted.filter(c => 
-          c.status === 'pending' && 
+        const newRoutedCases = sorted.filter(c =>
           !prevCasesRef.current.find(pc => pc.id === c.id)
         );
-        newPendingCases.forEach(c => {
-          addNotification(`New case added to queue: ${c.patientName}`, 'info');
+        newRoutedCases.forEach(c => {
+          addNotification(
+            `Real-time case routed: ${c.patientName} · ${c.intelligence?.assessment?.recommendedSpecialty || c.requiredSpecialty || 'General Medicine'}`,
+            c.intelligence?.assessment?.urgency === 'emergency' ? 'warning' : 'info'
+          );
         });
 
         sorted.forEach(c => {
