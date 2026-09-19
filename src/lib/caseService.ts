@@ -1,5 +1,7 @@
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -52,9 +54,7 @@ export const caseService = {
             assignmentSnapshot.docs.map(async assignmentDoc => {
               const assignment = assignmentDoc.data();
               if (assignedCaseIds.has(assignment.caseId)) return null;
-              const caseSnapshot = await import('firebase/firestore').then(({ getDoc, doc }) =>
-                getDoc(doc(client.db, 'cases', assignment.caseId))
-              );
+              const caseSnapshot = await getDoc(doc(client.db, 'cases', assignment.caseId));
               return caseSnapshot.exists() ? caseSnapshot.data() as MedicalCase : null;
             })
           );
