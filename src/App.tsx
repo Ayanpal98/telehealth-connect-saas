@@ -4665,8 +4665,9 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
   const handleLogin = async () => {
     setIsLoading(true);
     setLoginError('');
+    setResetMessage('');
     try {
-      const loginEmail = email || (secureBackend.isAvailable() ? '' : `user_${Math.random().toString(36).substring(7)}@example.com`);
+      const loginEmail = email.trim() || (secureBackend.isAvailable() ? '' : `user_${Math.random().toString(36).substring(7)}@example.com`);
       if (secureBackend.isAvailable() && !password) {
         throw new Error('Enter your password to sign in securely.');
       }
@@ -4729,6 +4730,32 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
             />
           </div>
 
+          {secureBackend.isAvailable() && (
+            <div className="flex justify-end -mt-3">
+              <button
+                type="button"
+                disabled={isResetting || !email.trim()}
+                onClick={async () => {
+                  if (!email.trim()) return;
+                  setIsResetting(true);
+                  setLoginError('');
+                  setResetMessage('');
+                  try {
+                    await authService.resetPassword(email.trim().toLowerCase());
+                    setResetMessage('Password reset email sent. Check your inbox and follow the secure link.');
+                  } catch (error) {
+                    setLoginError(error instanceof Error ? error.message : 'Unable to send password reset email.');
+                  } finally {
+                    setIsResetting(false);
+                  }
+                }}
+                className="text-xs font-black text-blue-600 hover:text-blue-700 disabled:text-slate-300 disabled:cursor-not-allowed"
+              >
+                {isResetting ? 'Sending…' : 'Forgot password?'}
+              </button>
+            </div>
+          )}
+
           <div className="space-y-3">
             <label className="block text-xs font-black uppercase tracking-widest text-gray-400 ml-2">I am entering as a</label>
             <div className="grid grid-cols-2 gap-4">
@@ -4765,7 +4792,8 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
             </div>
           </div>
 
-          {loginError && <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-xs font-bold text-red-700">{loginError}</div>}
+          {loginError && <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-100 text-xs font-bold text-red-700">{loginError}</div>}
+          {resetMessage && <div role="status" className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-bold text-emerald-700">{resetMessage}</div>}
 
           <button 
             onClick={handleLogin}
@@ -4801,19 +4829,60 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    const loadProfile = async (firebaseUser: { uid: string } | null) => {
+      if (!firebaseUser) {
+        if (!cancelled) {
+          setUserProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
-        const profile = await authService.getCurrentUser();
-        setUserProfile(profile);
-      } finally {
-        setLoading(false);
+        const profile = await secureBackend.getProfile(firebaseUser.uid);
+        if (!cancelled) {
+          setUserProfile(profile);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setUserProfile(null);
+          setLoading(false);
+        }
       }
     };
 
-    window.addEventListener('auth-change', checkAuth);
-    checkAuth();
+    if (secureBackend.isAvailable()) {
+      unsubscribe = authService.subscribeToAuthState(user => {
+        void loadProfile(user);
+      });
+    } else {
+      void authService.getCurrentUser().then(profile => {
+        if (!cancelled) {
+          setUserProfile(profile);
+          setLoading(false);
+        }
+      });
+    }
 
-    return () => window.removeEventListener('auth-change', checkAuth);
+    const handleAuthChange = () => {
+      if (!secureBackend.isAvailable()) {
+        void authService.getCurrentUser().then(profile => {
+          if (!cancelled) setUserProfile(profile);
+        });
+      }
+    };
+
+    window.addEventListener('auth-change', handleAuthChange);
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+      window.removeEventListener('auth-change', handleAuthChange);
+    };
   }, []);
 
   if (loading) return <LoadingScreen />;
