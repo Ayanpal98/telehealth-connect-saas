@@ -66,7 +66,23 @@ export const authService = {
       return mockAuth.login(email, displayName, role);
     }
 
-    const credential = await secureBackend.signIn(email, password);
+    if (!email.trim()) throw new Error('Enter your email address.');
+    if (!password) throw new Error('Enter your password.');
+
+    let credential;
+    try {
+      credential = await secureBackend.signIn(email.trim().toLowerCase(), password);
+    } catch (error: any) {
+      const code = error?.code || '';
+      const messages: Record<string, string> = {
+        'auth/invalid-credential': 'The email or password is incorrect.',
+        'auth/invalid-email': 'Enter a valid email address.',
+        'auth/user-disabled': 'This account has been disabled. Contact Clinova support.',
+        'auth/too-many-requests': 'Too many sign-in attempts. Please wait a few minutes and try again.',
+        'auth/network-request-failed': 'Unable to reach the authentication service. Check your connection and try again.'
+      };
+      throw new Error(messages[code] || 'Sign in failed. Please check your credentials and try again.');
+    }
     const existing = await secureBackend.getProfile(credential.user.uid);
     if (!existing) {
       throw new Error('Your account is authenticated, but no Clinova profile is provisioned yet. Ask an administrator to create your profile.');
