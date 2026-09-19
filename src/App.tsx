@@ -319,6 +319,60 @@ const Navbar = ({ userProfile }: { userProfile: UserProfile | null }) => {
   );
 };
 
+
+const CareJourney = ({ cases, onStart }: { cases: MedicalCase[]; onStart: () => void }) => {
+  const latest = cases[0];
+  const routingState = (latest as any)?.routingState as string | undefined;
+  const status = latest?.status;
+  const stages = [
+    { label: 'Concern shared', done: !!latest, active: false },
+    { label: 'Care pathway', done: !!latest?.intelligence, active: !!latest && !latest?.intelligence },
+    { label: 'Clinician found', done: status === 'assigned' || status === 'in-progress' || status === 'completed' || routingState === 'broadcast', active: routingState === 'broadcast' && status === 'pending' },
+    { label: 'Consultation', done: status === 'in-progress' || status === 'completed', active: status === 'assigned' },
+    { label: 'Care plan', done: status === 'completed', active: status === 'completed' },
+  ];
+  const active = stages.findIndex(s => s.active);
+  return (
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="p-6 md:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Your care journey</p>
+          <h2 className="text-xl font-black text-slate-900 mt-1">{latest ? 'Your latest request is moving through Clinova' : 'Start with what you need help with'}</h2>
+          <p className="text-sm text-slate-500 font-semibold mt-2 max-w-2xl">
+            {latest ? 'You can follow each step here. Clinova routes your request to suitable clinicians and keeps you updated in real time.' : 'Share your concern in a few simple steps. We will help identify the care pathway and suitable clinician.'}
+          </p>
+        </div>
+        <button onClick={onStart} className="shrink-0 px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black hover:bg-black transition-all flex items-center justify-center gap-2">
+          <Stethoscope className="w-4 h-4" /> {latest ? 'Start another' : 'Start consultation'}
+        </button>
+      </div>
+      <div className="px-6 pb-6 md:px-7 md:pb-7">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+          {stages.map((stage, index) => (
+            <div key={stage.label} className={cn("rounded-2xl p-3 border", stage.done ? "bg-emerald-50 border-emerald-100" : stage.active ? "bg-blue-50 border-blue-200" : "bg-slate-50 border-slate-100")}>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black", stage.done ? "bg-emerald-600 text-white" : stage.active ? "bg-blue-600 text-white" : "bg-white text-slate-400 border border-slate-200")}>
+                  {stage.done ? <Check className="w-4 h-4" /> : index + 1}
+                </div>
+                <span className={cn("text-[10px] font-black", stage.done ? "text-emerald-700" : stage.active ? "text-blue-700" : "text-slate-400")}>{stage.label}</span>
+              </div>
+              {stage.active && <p className="text-[9px] font-bold text-blue-600 mt-2">In progress</p>}
+            </div>
+          ))}
+        </div>
+        {latest && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-black">
+            <span className="px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600">Status: {status?.replace('-', ' ') || 'pending'}</span>
+            {latest.requiredSpecialty && <span className="px-2.5 py-1.5 rounded-full bg-indigo-50 text-indigo-700">{latest.requiredSpecialty}</span>}
+            {latest.assignedConsultantName && <span className="px-2.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700">Clinician: {latest.assignedConsultantName}</span>}
+            {routingState === 'broadcast' && <span className="px-2.5 py-1.5 rounded-full bg-blue-50 text-blue-700 flex items-center gap-1"><WifiOff className="w-3 h-3 rotate-180" /> Live routing</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // --- Patient Views ---
 
 const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
@@ -503,6 +557,8 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 </div>
               </div>
             </div>
+
+            <CareJourney cases={cases} onStart={() => setIsCreating(true)} />
 
             {/* 2. Quick Action Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1478,1269 +1534,201 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 };
 
 const CreateCaseModal = ({ userProfile, onClose }: { userProfile: UserProfile, onClose: () => void }) => {
+  const [step, setStep] = useState(1);
   const [symptoms, setSymptoms] = useState('');
   const [requiredSpecialty, setRequiredSpecialty] = useState<Specialty | undefined>(undefined);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
-
+  const [submitted, setSubmitted] = useState(false);
   const [image, setImage] = useState<string | null>(null);
 
-  const [isDragging, setIsDragging] = useState(false);
+  const previewCase = useMemo(() => ({
+    id: 'preview',
+    patientId: userProfile.uid,
+    patientName: userProfile.displayName || userProfile.email,
+    symptoms,
+    requiredSpecialty,
+    location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
+    status: 'pending' as const,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }), [userProfile.uid, userProfile.displayName, userProfile.email, symptoms, requiredSpecialty, location]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const intelligence = useMemo(() => symptoms.trim() ? runIntelligence(previewCase, []) : null, [previewCase, symptoms]);
 
   const handleGetLocation = () => {
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setIsLocating(false);
-      },
-      () => {
-        alert("Could not get location. Please enable permissions.");
-        setIsLocating(false);
-      }
+      pos => { setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setIsLocating(false); },
+      () => { setIsLocating(false); }
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!symptoms) return;
-    setShowConfirmSubmit(true);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
   };
+
+  const canContinue = step === 1 ? symptoms.trim().length >= 4 : true;
 
   const confirmSubmit = async () => {
     setIsSubmitting(true);
     try {
       const medicalCase = {
-        id: 'pending-intelligence',
-        patientId: userProfile.uid,
-        patientName: userProfile.displayName || userProfile.email,
-        symptoms,
-        requiredSpecialty,
-        location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
-        imageUrl: image || undefined,
-        status: 'pending' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        ...previewCase,
+        imageUrl: image || undefined
       };
-      const intelligence = runIntelligence(
+      const finalIntelligence = runIntelligence(
         medicalCase,
-        secureBackend.isAvailable()
-          ? []
-          : mockDb.getProfiles().filter(p => p.role === 'clinician')
+        secureBackend.isAvailable() ? [] : mockDb.getProfiles().filter(p => p.role === 'clinician')
       );
-      await caseService.createCase({ ...medicalCase, intelligence });
-      
-      // Delay for feedback
-      setTimeout(() => {
-        onClose();
-        setIsSubmitting(false);
-      }, 1200);
+      await caseService.createCase({ ...medicalCase, intelligence: finalIntelligence });
+      setSubmitted(true);
     } catch (err) {
       console.error(err);
+    } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <motion.div initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden">
+          <div className="p-8 md:p-10 text-center">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><CheckCircle className="w-8 h-8" /></div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600 mt-6">Request submitted</p>
+            <h2 className="text-2xl font-black text-slate-900 mt-2">Your care journey has started</h2>
+            <p className="text-sm text-slate-500 font-semibold leading-relaxed mt-3">Clinova is routing your request to suitable clinicians. Your patient dashboard will update automatically when a clinician is found.</p>
+            <div className="mt-6 p-4 rounded-2xl bg-blue-50 border border-blue-100 text-left">
+              <p className="text-xs font-black text-blue-800">Next</p>
+              <p className="text-xs font-semibold text-blue-700 mt-1">Care pathway → clinician matching → consultation</p>
+            </div>
+            <button onClick={onClose} className="mt-7 w-full py-3.5 rounded-2xl bg-slate-900 text-white font-black">Return to dashboard</button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const steps = [
+    { n: 1, label: 'Your concern' },
+    { n: 2, label: 'A little more' },
+    { n: 3, label: 'Location & files' },
+    { n: 4, label: 'Review & send' }
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl"
-      >
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">New Consultation</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <Plus className="w-6 h-6 rotate-45" />
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Preferred Specialty <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <select 
-              value={requiredSpecialty || ''}
-              onChange={(e) => setRequiredSpecialty(e.target.value ? e.target.value as Specialty : undefined)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            >
-              <option value="">Let care intelligence decide</option>
-              {SPECIALTIES.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+      <motion.div initial={{ opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl">
+        <div className="p-6 md:p-7 border-b border-slate-100">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Guided consultation</p>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">Let's understand what you need</h2>
+            </div>
+            <button onClick={onClose} className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center"><Plus className="w-5 h-5 rotate-45" /></button>
           </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Describe your symptoms
-            </label>
-            <textarea 
-              required
-              value={symptoms}
-              onChange={(e) => setSymptoms(e.target.value)}
-              placeholder="e.g. Severe headache for 2 days, mild fever..."
-              className="w-full h-32 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-            />
-          </div>
-
-          {symptoms.trim().length >= 12 && (
-            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Brain className="w-4 h-4 text-indigo-600" />
-                <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">Live care navigation preview</p>
+          <div className="grid grid-cols-4 gap-2 mt-6">
+            {steps.map(item => (
+              <div key={item.n} className="space-y-1.5">
+                <div className={cn("h-1.5 rounded-full", step >= item.n ? "bg-blue-600" : "bg-slate-100")} />
+                <p className={cn("text-[9px] font-black", step === item.n ? "text-blue-700" : step > item.n ? "text-slate-500" : "text-slate-300")}>{item.label}</p>
               </div>
-              {(() => {
-                const previewCase = {
-                  id: 'preview',
-                  patientId: userProfile.uid,
-                  patientName: userProfile.displayName || userProfile.email,
-                  symptoms,
-                  requiredSpecialty,
-                  location: location ? { latitude: location.lat, longitude: location.lng } : undefined,
-                  status: 'pending' as const,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString()
-                };
-                const preview = runIntelligence(previewCase, mockDb.getProfiles().filter(p => p.role === 'clinician'));
-                return (
-                  <div className="space-y-2">
-                    <p className="text-sm font-black text-slate-900">{preview.assessment.recommendedSpecialty}</p>
-                    <p className="text-xs text-slate-600 font-semibold">{preview.assessment.explanation}</p>
-                    {preview.assessment.urgency === 'emergency' && <p className="text-xs font-black text-red-700">Potential red flag detected — normal consultant matching will be paused after submission.</p>}
-                  </div>
-                );
-              })()}
+            ))}
+          </div>
+        </div>
+
+        <div className="p-6 md:p-7 max-h-[62vh] overflow-y-auto">
+          {step === 1 && (
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-black text-slate-800">What are you experiencing?</label>
+                <p className="text-xs text-slate-500 font-semibold mt-1">Use your own words. You don't need to know the medical term.</p>
+                <textarea autoFocus value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={6} placeholder="For example: I've had a cough and fever for three days..." className="mt-3 w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold resize-none" />
+              </div>
+              <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                <p className="text-xs font-black text-indigo-800">You don't need to choose a doctor</p>
+                <p className="text-[11px] font-semibold text-indigo-700 mt-1">Clinova can suggest a care pathway from what you describe.</p>
+              </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Attach a photo (optional)
-            </label>
-            <div className="space-y-3">
-              <label 
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={cn(
-                  "flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-2xl transition-all cursor-pointer overflow-hidden relative group",
-                  isDragging ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-400 hover:bg-blue-50",
-                  image ? "border-solid border-blue-100" : ""
-                )}
-              >
-                {image ? (
-                  <div className="relative w-full h-full">
-                    <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <p className="text-white text-xs font-bold bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">Click to Change</p>
-                    </div>
+          {step === 2 && (
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-black text-slate-800">Do you already know which specialty you need?</label>
+                <p className="text-xs text-slate-500 font-semibold mt-1">Optional. Leave this on “Let Clinova decide” if you're unsure.</p>
+                <select value={requiredSpecialty || ''} onChange={e => setRequiredSpecialty((e.target.value || undefined) as Specialty | undefined)} className="mt-3 w-full p-4 rounded-2xl border border-slate-200 bg-white font-bold text-sm">
+                  <option value="">Let Clinova decide</option>
+                  {SPECIALTIES.map(specialty => <option key={specialty} value={specialty}>{specialty}</option>)}
+                </select>
+              </div>
+              {intelligence && (
+                <div className={cn("p-5 rounded-2xl border", intelligence.assessment.urgency === 'emergency' ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-100")}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Clinova preview</p><p className="text-sm font-black text-slate-900 mt-1">Suggested pathway: {intelligence.assessment.recommendedSpecialty}</p></div>
+                    <span className="px-2.5 py-1 rounded-full bg-white text-[9px] font-black uppercase">{intelligence.assessment.urgency}</span>
                   </div>
-                ) : (
-                  <>
-                    <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-colors",
-                      isDragging ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-400"
-                    )}>
-                      <Camera className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-gray-700">
-                      {isDragging ? "Drop image here" : "Capture or Upload Photo"}
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-1">PNG, JPG or GIF up to 5MB</p>
-                  </>
-                )}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment"
-                  onChange={handleImageChange}
-                  className="hidden" 
-                />
-              </label>
-              
-              {image && (
-                <button 
-                  type="button"
-                  onClick={() => setImage(null)}
-                  className="w-full py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4 rotate-45" />
-                  Remove Photo
+                  <p className="text-xs font-semibold text-slate-600 mt-3">{intelligence.assessment.explanation}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-black text-slate-800">Help us find the right local option</p>
+                <p className="text-xs text-slate-500 font-semibold mt-1">Location is optional and only helps with local clinician matching.</p>
+                <button type="button" onClick={handleGetLocation} className="mt-3 w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-50 transition-all flex items-center justify-between">
+                  <span className="flex items-center gap-3 text-sm font-black text-slate-700"><MapPin className="w-5 h-5 text-blue-600" /> {location ? 'Location added' : 'Use my current location'}</span>
+                  {isLocating ? <span className="text-xs font-bold text-blue-600">Finding…</span> : location ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
                 </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-            <div className="flex items-center gap-3">
-              <MapPin className={cn("w-5 h-5", location ? "text-blue-600" : "text-gray-400")} />
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Location Detection</p>
-                <p className="text-xs text-gray-500">
-                  {location ? "Location captured" : "Help us find nearby consultants"}
-                </p>
-              </div>
-            </div>
-            <button 
-              type="button"
-              onClick={handleGetLocation}
-              disabled={isLocating}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                location 
-                  ? "bg-blue-100 text-blue-700" 
-                  : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-              )}
-            >
-              {isLocating ? "Locating..." : location ? "Update" : "Detect"}
-            </button>
-          </div>
-
-          <button 
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3 overflow-hidden relative"
-          >
-            <AnimatePresence mode="wait">
-              {isSubmitting ? (
-                <motion.div 
-                  key="submitting"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center gap-2"
-                >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                  />
-                  <span>Processing...</span>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="idle"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center gap-2"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  <span>Submit Case Request</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </button>
-        </form>
-
-        <ConfirmationModal 
-          isOpen={showConfirmSubmit}
-          onClose={() => setShowConfirmSubmit(false)}
-          onConfirm={confirmSubmit}
-          title="Submit Medical Case"
-          message="Are you sure you want to submit this consultation request? A clinician will review it shortly."
-          confirmText="Submit Now"
-          type="info"
-        />
-      </motion.div>
-    </div>
-  );
-};
-
-// --- Clinician Views ---
-
-const ConsultationSection = ({ medicalCase, clinician }: { medicalCase: MedicalCase, clinician: UserProfile }) => {
-  const [diagnosis, setDiagnosis] = useState(medicalCase.diagnosis || '');
-  const [medications, setMedications] = useState<string[]>(medicalCase.medications || []);
-  const [newMed, setNewMed] = useState('');
-  const [notes, setNotes] = useState(medicalCase.clinicianNotes || '');
-  const [treatmentPlan, setTreatmentPlan] = useState<string[]>(medicalCase.treatmentPlan || []);
-  const [newPlanStep, setNewPlanStep] = useState('');
-  const [medicalAssistanceMeasures, setMedicalAssistanceMeasures] = useState(medicalCase.medicalAssistanceMeasures || '');
-  const [steps, setSteps] = useState(medicalCase.consultationSteps || { consulted: false, analyzed: false, updated: false });
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [showConfirmComplete, setShowConfirmComplete] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
-  };
-
-  const handleQuickInsert = (target: QuickReplyTarget, content: string) => {
-    if (target === 'diagnosis') {
-      setDiagnosis(prev => prev ? `${prev.trim()}\n\n${content}` : content);
-      setSteps(prev => ({ ...prev, analyzed: true }));
-      showToast('Inserted into Diagnosis & Findings');
-    } else if (target === 'treatmentPlan') {
-      setTreatmentPlan(prev => [...prev, content]);
-      setSteps(prev => ({ ...prev, updated: true }));
-      showToast('Added step to Treatment Plan');
-    } else if (target === 'notes') {
-      setNotes(prev => prev ? `${prev.trim()}\n\n${content}` : content);
-      showToast('Appended to Clinician Private Notes');
-    } else if (target === 'medicalAssistanceMeasures') {
-      setMedicalAssistanceMeasures(prev => prev ? `${prev.trim()}\n\n${content}` : content);
-      setSteps(prev => ({ ...prev, updated: true }));
-      showToast('Inserted into Medical Assistance Measures');
-    } else if (target === 'medication') {
-      setMedications(prev => [...prev, content]);
-      setSteps(prev => ({ ...prev, updated: true }));
-      showToast('Added prescribed medication');
-    }
-  };
-
-  const handleAddMed = () => {
-    if (newMed.trim()) {
-      setMedications([...medications, newMed.trim()]);
-      setNewMed('');
-      setSteps(prev => ({ ...prev, updated: true }));
-    }
-  };
-
-  const handleRemoveMed = (index: number) => {
-    setMedications(medications.filter((_, i) => i !== index));
-  };
-
-  const handleAddPlanStep = () => {
-    if (newPlanStep.trim()) {
-      setTreatmentPlan([...treatmentPlan, newPlanStep.trim()]);
-      setNewPlanStep('');
-      setSteps(prev => ({ ...prev, updated: true }));
-    }
-  };
-
-  const handleRemovePlanStep = (index: number) => {
-    setTreatmentPlan(treatmentPlan.filter((_, i) => i !== index));
-  };
-
-  const toggleStep = (step: keyof typeof steps) => {
-    setSteps(prev => ({ ...prev, [step]: !prev[step] }));
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveSuccess(false);
-    try {
-      await caseService.updateCase(medicalCase.id, {
-        diagnosis,
-        medications,
-        clinicianNotes: notes,
-        treatmentPlan,
-        medicalAssistanceMeasures,
-        consultationSteps: steps,
-        status: steps.updated ? 'in-progress' : medicalCase.status
-      });
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleComplete = async () => {
-    setIsSaving(true);
-    try {
-      await caseService.updateCase(medicalCase.id, {
-        diagnosis,
-        medications,
-        clinicianNotes: notes,
-        treatmentPlan,
-        medicalAssistanceMeasures,
-        consultationSteps: steps,
-        status: 'completed'
-      });
-      setShowConfirmComplete(false);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const diagnosisPills = [
-    { title: 'Viral URI', text: 'Patient presents with symptoms consistent with acute viral upper respiratory tract infection. Clear lung sounds bilaterally, no signs of lower respiratory consolidation or secondary bacterial infection.' },
-    { title: 'Tension Headache', text: 'Bilateral, mild-to-moderate band-like tension headache without photophobia, nausea, or focal neurological deficits.' },
-    { title: 'Contact Dermatitis', text: 'Localized erythematous pruritic maculopapular rash secondary to external allergen/irritant contact. Intact epidermal barrier.' },
-    { title: 'Gastroenteritis', text: 'Acute uncomplicated gastroenteritis with mild nausea and self-limiting loose stools. Good oral hydration maintained.' },
-    { title: 'Lumbar Strain', text: 'Acute musculoskeletal lumbar strain with localized paravertebral tenderness and intact lower extremity neurovascular exam.' }
-  ];
-
-  const notesPills = [
-    { title: 'Teleconsult Verified', text: 'Virtual teleconsultation conducted via secure Clinova video/audio channel. Patient identity verified. Informed consent documented.' },
-    { title: 'Low Acute Risk', text: 'Patient evaluated as low acute clinical risk. Supportive home therapy and symptom monitoring initiated.' },
-    { title: 'Rx Counseled', text: 'Prescription issued. Patient counseled on medication timing, food intake, and warning signs.' },
-    { title: 'Follow-up in 48h', text: 'Advised patient to schedule secondary teleconsultation if symptoms do not improve within 48-72 hours.' }
-  ];
-
-  const measuresPills = [
-    { title: 'Home Isolation', text: 'Advised voluntary home convalescence and high-filtration mask wearing until afebrile for 24 hours.' },
-    { title: 'Vital Tele-Monitoring', text: 'Instructed patient to record temperature, resting heart rate, and SpO2 twice daily.' },
-    { title: 'Ergonomic Guidelines', text: 'Provided ergonomic posture guidelines and 5-minute stretch routine during desk work.' }
-  ];
-
-  const treatmentPills = [
-    { title: 'Hydration 2.5-3L', text: 'Maintain vigorous oral hydration (2.5 - 3.0 L/day) using water, herbal broths, or oral rehydration solutions.' },
-    { title: '48h Rest', text: 'Strict cognitive and physical rest for 48 hours; avoid heavy lifting, workouts, and extended screen time.' },
-    { title: 'Saline Gargle & Steam', text: 'Perform warm saline gargles 3-4 times daily and steam inhalation before sleep.' },
-    { title: 'BRAT Diet', text: 'Follow bland BRAT diet (bananas, rice, applesauce, toast); strictly avoid dairy and greasy foods for 72 hours.' },
-    { title: 'Emergency Red Flags', text: 'Seek emergency evaluation immediately if experiencing high fever (>39°C), dyspnea, chest pressure, or altered alertness.' }
-  ];
-
-  const medicationPills = [
-    { title: 'Paracetamol 500mg', text: 'Paracetamol 500mg PO every 6 hours as needed for fever/pain (Max 3000mg/24h)' },
-    { title: 'Ibuprofen 400mg', text: 'Ibuprofen 400mg PO every 8 hours with food for anti-inflammatory pain relief' },
-    { title: 'Cetirizine 10mg', text: 'Cetirizine 10mg PO once daily at bedtime for allergic symptom control' },
-    { title: 'ORS Sachet', text: 'Oral Rehydration Salts (1 sachet in 1L boiled water, sip throughout day)' }
-  ];
-
-  return (
-    <div className="p-6 md:p-8 space-y-8 relative">
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-8 z-50 px-4 py-2.5 bg-slate-900 text-white rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold border border-slate-700"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>{toastMessage}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-xl font-black text-slate-900">Medical Consultation</h3>
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-black uppercase tracking-wider">
-              Clinician Editor
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Follow the guided steps or use Quick Reply presets to provide rapid, standardized care guidance.
-          </p>
-          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[9px] font-black uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Real-time case routing enabled
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Quick Reply Menu Trigger */}
-          <QuickReplyMenu onInsert={handleQuickInsert} activeTarget="diagnosis" />
-
-          <AnimatePresence mode="wait">
-            {saveSuccess && (
-              <motion.div
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-100"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Saved!</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <button 
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl font-black transition-all text-xs flex items-center gap-1.5 group active:scale-95"
-          >
-            {isSaving ? (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full"
-              />
-            ) : <Save className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />}
-            {isSaving ? "Saving..." : "Save Progress"}
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => setShowConfirmComplete(true)}
-            disabled={!steps.consulted || !steps.analyzed || !steps.updated || isSaving}
-            className="px-4 py-2 bg-green-600 text-white rounded-xl font-black hover:bg-green-700 transition-all text-xs disabled:opacity-50 shadow-md shadow-green-600/20 flex items-center gap-1.5 active:scale-95"
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            Complete Case
-          </button>
-        </div>
-      </div>
-
-      {/* Guided Steps */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[
-          { id: 'consulted', label: '1. Consult', icon: Stethoscope, desc: 'Review symptoms & history' },
-          { id: 'analyzed', label: '2. Analyze', icon: Activity, desc: 'Formulate diagnosis & notes' },
-          { id: 'updated', label: '3. Prescribe & Guide', icon: FileText, desc: 'Treatment plan & medications' }
-        ].map((step) => (
-          <button
-            key={step.id}
-            type="button"
-            onClick={() => toggleStep(step.id as any)}
-            className={cn(
-              "p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden group",
-              steps[step.id as keyof typeof steps] 
-                ? "bg-blue-50/80 border-blue-200 shadow-sm" 
-                : "bg-white border-slate-100 hover:border-blue-100"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                steps[step.id as keyof typeof steps] ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
-              )}>
-                <step.icon className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-bold text-xs text-slate-900">{step.label}</h4>
-                <p className="text-[10px] text-slate-500">{step.desc}</p>
+                <p className="text-sm font-black text-slate-800">Add a report or image <span className="text-slate-400">(optional)</span></p>
+                <label className="mt-3 flex items-center justify-between gap-4 p-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 cursor-pointer hover:bg-slate-100">
+                  <span className="flex items-center gap-3"><FileText className="w-5 h-5 text-indigo-600" /><span><span className="block text-sm font-black text-slate-700">{image ? 'File ready' : 'Upload image'}</span><span className="block text-[10px] text-slate-500 font-semibold">{image ? 'Ready to include with your request' : 'JPG, PNG or photo'}</span></span></span>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <span className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-600">Choose</span>
+                </label>
               </div>
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-semibold text-emerald-800">Your request will be routed to suitable clinicians. Location and uploaded evidence are used only as part of the care workflow.</div>
             </div>
-            {steps[step.id as keyof typeof steps] && (
-              <div className="absolute top-2.5 right-2.5">
-                <Check className="w-4 h-4 text-blue-600" />
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Quick Reply Tip & Banner */}
-      <div className="p-3.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/80 rounded-2xl flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-blue-600 text-white rounded-lg flex items-center justify-center shrink-0 shadow-sm">
-            <Zap className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-          </div>
-          <div>
-            <h4 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-              Quick Reply Menu Enabled
-              <span className="text-[9px] font-bold px-1.5 py-0.2 bg-blue-600 text-white rounded">Speed Presets</span>
-            </h4>
-            <p className="text-[11px] text-slate-600">
-              Click the <strong className="text-blue-700 font-bold">⚡ Quick Reply Menu</strong> or the quick pill phrases below each box to insert standardized clinical wording instantly.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            const btn = document.getElementById('quick-reply-trigger-btn');
-            if (btn) btn.click();
-          }}
-          className="text-xs font-bold text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-        >
-          Browse All Phrases →
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left Column: Diagnosis, Notes, Measures */}
-        <div className="space-y-6">
-          {/* Diagnosis & Findings */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                Diagnosis & Findings
-              </label>
-              <span className="text-[10px] text-slate-400 font-semibold">Visible to Patient</span>
-            </div>
-
-            <InlineQuickPills 
-              label="Common Diagnoses:"
-              items={diagnosisPills}
-              onSelect={(text) => handleQuickInsert('diagnosis', text)}
-            />
-
-            <textarea 
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              placeholder="Enter your medical analysis and diagnosis here or select from Quick Replies..."
-              className="w-full h-32 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none text-xs leading-relaxed"
-            />
-          </div>
-
-          {/* Clinician Notes (Private) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                Clinician Notes (Private)
-              </label>
-              <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold">
-                🔒 Clinician Only
-              </span>
-            </div>
-
-            <InlineQuickPills 
-              label="Clinical Notes:"
-              items={notesPills}
-              onSelect={(text) => handleQuickInsert('notes', text)}
-            />
-
-            <textarea 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Internal clinician remarks, differential notes, risk triage rationale..."
-              className="w-full h-32 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none text-xs leading-relaxed"
-            />
-          </div>
-
-          {/* Medical Assistance Measures */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                Medical Assistance Measures
-              </label>
-              <span className="text-[10px] text-slate-400 font-semibold">Convalescence Protocol</span>
-            </div>
-
-            <InlineQuickPills 
-              label="Assistance Protocols:"
-              items={measuresPills}
-              onSelect={(text) => handleQuickInsert('medicalAssistanceMeasures', text)}
-            />
-
-            <textarea 
-              value={medicalAssistanceMeasures}
-              onChange={(e) => setMedicalAssistanceMeasures(e.target.value)}
-              placeholder="Home quarantine advice, daily vitals telemonitoring, ergonomic guidelines..."
-              className="w-full h-32 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none text-xs leading-relaxed"
-            />
-          </div>
-        </div>
-
-        {/* Right Column: Structured Treatment Plan & Prescriptions */}
-        <div className="space-y-6">
-          {/* Treatment Plan */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                Structured Treatment Plan
-              </label>
-              <span className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">
-                {treatmentPlan.length} Steps
-              </span>
-            </div>
-
-            <InlineQuickPills 
-              label="Treatment Directives:"
-              items={treatmentPills}
-              onSelect={(text) => handleQuickInsert('treatmentPlan', text)}
-            />
-
-            <div className="flex gap-2">
-              <input 
-                type="text"
-                value={newPlanStep}
-                onChange={(e) => setNewPlanStep(e.target.value)}
-                placeholder="Type or 1-click insert treatment directive..."
-                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddPlanStep()}
-              />
-              <button 
-                type="button"
-                onClick={handleAddPlanStep}
-                className="px-3 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all text-xs font-bold flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add</span>
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              <AnimatePresence>
-                {treatmentPlan.length === 0 ? (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200"
-                  >
-                    <ClipboardList className="w-6 h-6 text-slate-300 mx-auto mb-1" />
-                    <p className="text-xs text-slate-400 font-medium">No treatment steps added yet</p>
-                    <p className="text-[10px] text-slate-400">Click a quick phrase above or type a step.</p>
-                  </motion.div>
-                ) : (
-                  treatmentPlan.map((step, index) => (
-                    <motion.div 
-                      key={index}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="flex items-start justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-indigo-200 transition-all group gap-2"
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-5 h-5 bg-indigo-100 text-indigo-700 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black">
-                          {index + 1}
-                        </div>
-                        <span className="text-xs font-medium text-slate-700 leading-relaxed">{step}</span>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => handleRemovePlanStep(index)}
-                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0"
-                      >
-                        <Plus className="w-3.5 h-3.5 rotate-45" />
-                      </button>
-                    </motion.div>
-                  ))
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Prescribed Medications */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                Prescribed Medications & Rx
-              </label>
-              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">
-                {medications.length} Prescribed
-              </span>
-            </div>
-
-            <InlineQuickPills 
-              label="Standard Rx:"
-              items={medicationPills}
-              onSelect={(text) => handleQuickInsert('medication', text)}
-            />
-
-            <div className="flex gap-2">
-              <input 
-                type="text"
-                value={newMed}
-                onChange={(e) => setNewMed(e.target.value)}
-                placeholder="e.g. Paracetamol 500mg PO TDS for 3 days"
-                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddMed()}
-              />
-              <button 
-                type="button"
-                onClick={handleAddMed}
-                className="px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all text-xs font-bold flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Rx</span>
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              <AnimatePresence>
-                {medications.length === 0 ? (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200"
-                  >
-                    <Pill className="w-6 h-6 text-slate-300 mx-auto mb-1" />
-                    <p className="text-xs text-slate-400 font-medium">No medications prescribed yet</p>
-                    <p className="text-[10px] text-slate-400">Click a quick medication pill or enter dosage above.</p>
-                  </motion.div>
-                ) : (
-                  medications.map((med, index) => (
-                    <motion.div 
-                      key={index}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="flex items-center justify-between p-2.5 bg-blue-50/40 border border-blue-100/80 rounded-xl hover:border-blue-200 transition-all group"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-6 h-6 bg-blue-600 text-white rounded-lg flex items-center justify-center shrink-0">
-                          <Pill className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-xs font-semibold text-slate-800">{med}</span>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveMed(index)}
-                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        <Plus className="w-3.5 h-3.5 rotate-45" />
-                      </button>
-                    </motion.div>
-                  ))
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ConfirmationModal 
-        isOpen={showConfirmComplete}
-        onClose={() => setShowConfirmComplete(false)}
-        onConfirm={handleComplete}
-        title="Complete Consultation"
-        message="Are you sure you want to mark this case as completed? This will finalize the diagnosis and medications for the patient."
-        confirmText="Finalize & Complete"
-        type="info"
-      />
-    </div>
-  );
-};
-
-const PatientProfileSection = ({ patientId }: { patientId: string }) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
-  const [patientCases, setPatientCases] = useState<MedicalCase[]>([]);
-  const [viewingCase, setViewingCase] = useState<MedicalCase | null>(null);
-  const [showConfirmSave, setShowConfirmSave] = useState(false);
-  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(true);
-
-  useEffect(() => {
-    let unsubscribe = () => {};
-    const loadProfile = async () => {
-      if (secureBackend.isAvailable()) {
-        const p = await secureBackend.getProfile(patientId);
-        if (p) {
-          setProfile(p);
-          setEditedProfile(p);
-        }
-        unsubscribe = secureBackend.subscribeToPatientCases(patientId, (nextCases) => {
-          const sorted = [...nextCases].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setPatientCases(sorted);
-        });
-        return;
-      }
-
-      const profiles = mockDb.getProfiles();
-      const p = profiles.find(u => u.uid === patientId);
-      if (p) {
-        setProfile(p);
-        setEditedProfile(p);
-      }
-      const allCases = mockDb.getCases();
-      setPatientCases(allCases
-        .filter(c => c.patientId === patientId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    };
-    void loadProfile();
-    return () => unsubscribe();
-  }, [patientId]);
-
-  const handleSave = async () => {
-    if (editedProfile) {
-      if (secureBackend.isAvailable()) {
-        await secureBackend.saveProfile(editedProfile);
-      } else {
-        mockDb.saveProfile(editedProfile);
-      }
-      setProfile(editedProfile);
-      setIsEditing(false);
-    }
-  };
-
-  if (!profile) return <div className="p-8 text-center text-gray-500 italic">Profile not found</div>;
-
-  return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h3 className="text-xl font-bold text-gray-900">Patient Profile</h3>
-        <button 
-          onClick={() => isEditing ? setShowConfirmSave(true) : setIsEditing(true)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all",
-            isEditing ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           )}
-        >
-          {isEditing ? <><Save className="w-4 h-4" /> Save Changes</> : <><Edit2 className="w-4 h-4" /> Edit Profile</>}
-        </button>
-      </div>
 
-      <ConfirmationModal 
-        isOpen={showConfirmSave}
-        onClose={() => setShowConfirmSave(false)}
-        onConfirm={handleSave}
-        title="Save Profile Changes"
-        message="Are you sure you want to update this patient's profile information?"
-        confirmText="Save Changes"
-        type="info"
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
-            {isEditing ? (
-              <input 
-                type="text"
-                value={editedProfile?.displayName || ''}
-                onChange={(e) => setEditedProfile(prev => prev ? { ...prev, displayName: e.target.value } : null)}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            ) : (
-              <p className="text-gray-900 font-medium">{profile.displayName || 'N/A'}</p>
-            )}
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Email Address</label>
-            <p className="text-gray-900 font-medium">{profile.email}</p>
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Account Created</label>
-            <p className="text-gray-900 font-medium">{new Date(profile.createdAt).toLocaleDateString()}</p>
-          </div>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-            <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Clinical Notes</h4>
-            <p className="text-xs text-blue-600 leading-relaxed">
-              This patient has been registered since {new Date(profile.createdAt).getFullYear()}. 
-              All medical history is stored securely in local storage.
-            </p>
-          </div>
-          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">System Info</h4>
-            <div className="space-y-1">
-              <p className="text-[10px] text-gray-500">UID: {profile.uid}</p>
-              <p className="text-[10px] text-gray-500">Role: {profile.role}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Medical History Summary Section */}
-      <div className="mt-8">
-        <button 
-          onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
-          className="w-full flex items-center justify-between p-4 bg-amber-50/50 border border-amber-100 rounded-2xl hover:bg-amber-50 transition-all group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shadow-sm">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div className="text-left">
-              <h3 className="text-sm font-bold text-gray-900">Medical History Summary</h3>
-              <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wider">Quick review of past diagnoses</p>
-            </div>
-          </div>
-          {isHistoryCollapsed ? <ChevronDown className="w-5 h-5 text-amber-400 group-hover:text-amber-600 transition-colors" /> : <ChevronUp className="w-5 h-5 text-amber-400 group-hover:text-amber-600 transition-colors" />}
-        </button>
-
-        <AnimatePresence>
-          {!isHistoryCollapsed && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-4">
-                {patientCases.filter(c => c.diagnosis).length === 0 ? (
-                  <p className="text-sm text-gray-400 italic text-center py-4">No recorded diagnoses found in history.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {patientCases.filter(c => c.diagnosis).map((c, idx) => (
-                      <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                        <div>
-                          <p className="text-xs font-bold text-gray-900">{c.diagnosis}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">
-                            {new Date(c.createdAt).toLocaleDateString()} • {c.requiredSpecialty || 'General Medicine'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          {step === 4 && (
+            <div className="space-y-5">
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Your concern</p>
+                <p className="text-sm font-bold text-slate-800 mt-2 leading-relaxed">{symptoms}</p>
               </div>
-            </motion.div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-4 rounded-2xl border border-slate-100"><p className="text-[9px] font-black uppercase text-slate-400">Care pathway</p><p className="text-sm font-black text-slate-800 mt-1">{intelligence?.assessment.recommendedSpecialty || requiredSpecialty || 'To be determined'}</p></div>
+                <div className="p-4 rounded-2xl border border-slate-100"><p className="text-[9px] font-black uppercase text-slate-400">Priority</p><p className="text-sm font-black text-slate-800 mt-1 capitalize">{intelligence?.assessment.urgency || 'routine'}</p></div>
+              </div>
+              <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                <p className="text-xs font-black text-blue-800">What happens next?</p>
+                <p className="text-xs font-semibold text-blue-700 mt-1">Clinova saves your request → identifies a care pathway → finds suitable clinicians → updates your dashboard in real time.</p>
+              </div>
+            </div>
           )}
-        </AnimatePresence>
-      </div>
-
-      {/* Case History Section */}
-      <div className="mt-12">
-        <div className="flex items-center gap-2 mb-6">
-          <ClipboardList className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-bold text-gray-900">Case History</h3>
-          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs font-bold">
-            {patientCases.length}
-          </span>
         </div>
 
-        <div className="space-y-4">
-          {patientCases.length === 0 ? (
-            <p className="text-sm text-gray-400 italic bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-200 text-center">
-              No past cases found for this patient.
-            </p>
+        <div className="p-5 md:p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+          <button type="button" onClick={() => step === 1 ? onClose() : setStep(step - 1)} className="px-5 py-3 rounded-2xl border border-slate-200 bg-white text-slate-700 font-black text-sm">{step === 1 ? 'Cancel' : 'Back'}</button>
+          {step < 4 ? (
+            <button type="button" disabled={!canContinue} onClick={() => setStep(step + 1)} className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm disabled:opacity-40 flex items-center gap-2">Continue <ArrowRight className="w-4 h-4" /></button>
           ) : (
-            patientCases.map((c) => (
-              <motion.div 
-                key={c.id} 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                onClick={() => setViewingCase(c)}
-                className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "w-2 h-2 rounded-full",
-                      c.status === 'pending' ? "bg-amber-500" :
-                      c.status === 'assigned' ? "bg-blue-500" :
-                      c.status === 'in-progress' ? "bg-indigo-500" :
-                      "bg-green-500"
-                    )} />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      {new Date(c.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                      c.status === 'pending' ? "bg-amber-50 text-amber-600" :
-                      c.status === 'assigned' ? "bg-blue-50 text-blue-600" :
-                      c.status === 'in-progress' ? "bg-indigo-50 text-indigo-600" :
-                      "bg-green-50 text-green-600"
-                    )}>
-                      {c.status}
-                    </span>
-                    <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-blue-500 transition-colors" />
-                  </div>
-                </div>
-                <p className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">{c.symptoms}</p>
-                <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                  <span className="bg-gray-100 px-1.5 py-0.5 rounded font-medium">{c.requiredSpecialty || 'General Medicine'}</span>
-                  {c.assignedConsultantName && (
-                    <span className="flex items-center gap-1">
-                      • <Users className="w-3 h-3" /> Assigned to {c.assignedConsultantName.split(' ')[0]}
-                    </span>
-                  )}
-                </div>
-              </motion.div>
-            ))
+            <button type="button" disabled={isSubmitting} onClick={confirmSubmit} className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm disabled:opacity-50 flex items-center gap-2">{isSubmitting ? 'Sending…' : 'Send consultation request'} <Send className="w-4 h-4" /></button>
           )}
         </div>
-      </div>
-
-      {/* Case Detail Modal */}
-      <AnimatePresence>
-        {viewingCase && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden"
-            >
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
-                    <ClipboardList className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Case Study Detail</h3>
-                    <p className="text-xs text-gray-500">ID: {viewingCase.id}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setViewingCase(null)}
-                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <Plus className="w-6 h-6 rotate-45 text-gray-500" />
-                </button>
-              </div>
-
-              <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
-                {viewingCase.diagnosis && (
-                  <div className="p-6 bg-green-50 border border-green-100 rounded-3xl">
-                    <div className="flex items-center gap-2 mb-4">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <h4 className="font-bold text-green-900">Medical Guidance & Diagnosis</h4>
-                    </div>
-                    <p className="text-sm text-green-800 leading-relaxed mb-6">{viewingCase.diagnosis}</p>
-                    
-                    {viewingCase.medications && viewingCase.medications.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="text-xs font-bold text-green-700 uppercase tracking-wider">Prescribed Medications</h5>
-                        <div className="flex flex-wrap gap-2">
-                          {viewingCase.medications.map((med, i) => (
-                            <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-white text-green-700 rounded-full text-xs font-bold border border-green-100 shadow-sm">
-                              <Pill className="w-3 h-3" />
-                              {med}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {viewingCase.treatmentPlan && viewingCase.treatmentPlan.length > 0 && (
-                      <div className="mt-6 space-y-3">
-                        <h5 className="text-xs font-bold text-green-700 uppercase tracking-wider">Structured Treatment Plan</h5>
-                        <div className="space-y-2">
-                          {viewingCase.treatmentPlan.map((step, i) => (
-                            <div key={i} className="flex items-start gap-3 p-3 bg-white/50 rounded-xl border border-green-50">
-                              <div className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                                {i + 1}
-                              </div>
-                              <p className="text-sm text-green-800">{step}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {viewingCase.medicalAssistanceMeasures && (
-                      <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                        <h5 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Medical Assistance Measures</h5>
-                        <p className="text-sm text-blue-800 leading-relaxed italic">
-                          "{viewingCase.medicalAssistanceMeasures}"
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-8">
-                  <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Status & Timeline</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                          viewingCase.status === 'pending' ? "bg-amber-50 text-amber-600" :
-                          viewingCase.status === 'assigned' ? "bg-blue-50 text-blue-600" :
-                          viewingCase.status === 'in-progress' ? "bg-indigo-50 text-indigo-600" :
-                          "bg-green-50 text-green-600"
-                        )}>
-                          {viewingCase.status}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-500 flex items-center gap-2">
-                          <Clock className="w-3 h-3" /> Created: {new Date(viewingCase.createdAt).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500 flex items-center gap-2">
-                          <Activity className="w-3 h-3" /> Updated: {new Date(viewingCase.updatedAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Assignment</h4>
-                    {viewingCase.assignedConsultantName ? (
-                      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-2xl border border-blue-100">
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                          {viewingCase.assignedConsultantName[0]}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{viewingCase.assignedConsultantName}</p>
-                          <p className="text-[10px] text-blue-600 font-medium">Assigned Clinician</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-400 italic">Not assigned yet</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Clinical Presentation</h4>
-                  <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                        {viewingCase.requiredSpecialty || 'General Medicine'}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed text-sm">
-                      {viewingCase.symptoms}
-                    </p>
-                  </div>
-                </div>
-
-                {viewingCase.imageUrl && (
-                  <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Clinical Evidence (Image)</h4>
-                    <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
-                      <img 
-                        src={viewingCase.imageUrl} 
-                        alt="Clinical evidence" 
-                        className="w-full h-auto max-h-96 object-contain mx-auto" 
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {viewingCase.location && (
-                  <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Patient Location</h4>
-                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-3">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">Coordinates</p>
-                        <p className="text-xs text-gray-500">
-                          Lat: {viewingCase.location.latitude.toFixed(4)}, Lng: {viewingCase.location.longitude.toFixed(4)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                <button 
-                  onClick={() => setViewingCase(null)}
-                  className="px-6 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-all"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </motion.div>
     </div>
   );
 };
