@@ -277,9 +277,14 @@ const Navbar = ({ userProfile }: { userProfile: UserProfile | null }) => {
               <HelpCircle className="w-5 h-5" />
             </Link>
             
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100 text-[10px] font-bold uppercase tracking-wider shadow-sm">
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider shadow-sm",
+              secureBackend.isAvailable()
+                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                : "bg-amber-50 text-amber-700 border-amber-100"
+            )}>
               <Database className="w-3 h-3" />
-              <span>Local Storage Mode</span>
+              <span>{secureBackend.isAvailable() ? "Firebase Realtime Mode" : "Local Demo Mode"}</span>
             </div>
             
             {!isOnline && (
@@ -341,7 +346,11 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
     return caseService.subscribeToCases(userProfile, (allCases) => {
       const filtered = allCases
         .filter(c => c.patientId === userProfile.uid)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? new Date(a.createdAt || 0).getTime();
+          const bTime = b.createdAt?.toMillis?.() ?? new Date(b.createdAt || 0).getTime();
+          return bTime - aTime;
+        });
       setCases(filtered);
     });
   }, [userProfile.uid]);
@@ -2893,9 +2902,11 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
   // Subscriptions to database
   useEffect(() => {
     return caseService.subscribeToCases(userProfile, (allCases) => {
-      const sorted = [...allCases].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      const sorted = [...allCases].sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() ?? new Date(a.createdAt || 0).getTime();
+        const bTime = b.createdAt?.toMillis?.() ?? new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
 
       if (prevCasesRef.current.length > 0) {
         const newRoutedCases = sorted.filter(c =>
