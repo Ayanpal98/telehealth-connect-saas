@@ -1381,7 +1381,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     <ClipboardList className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">Case Study Detail</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Care request detail</h3>
                     <p className="text-xs text-gray-500">ID: {viewingCase.id}</p>
                   </div>
                 </div>
@@ -1419,7 +1419,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                     {viewingCase.treatmentPlan && viewingCase.treatmentPlan.length > 0 && (
                       <div className="mt-6 space-y-3">
-                        <h5 className="text-xs font-bold text-green-700 uppercase tracking-wider">Structured Treatment Plan</h5>
+                        <h5 className="text-xs font-bold text-green-700 uppercase tracking-wider">Clinician care plan</h5>
                         <div className="space-y-2">
                           {viewingCase.treatmentPlan.map((step, i) => (
                             <div key={i} className="flex items-start gap-3 p-3 bg-white/50 rounded-xl border border-green-50">
@@ -1435,7 +1435,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                     {viewingCase.medicalAssistanceMeasures && (
                       <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                        <h5 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Medical Assistance Measures</h5>
+                        <h5 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Care guidance</h5>
                         <p className="text-sm text-blue-800 leading-relaxed italic">
                           "{viewingCase.medicalAssistanceMeasures}"
                         </p>
@@ -1488,7 +1488,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 </div>
 
                 <div>
-                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Clinical Presentation</h4>
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Patient-provided concern</h4>
                   <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
@@ -2641,12 +2641,12 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                           className="bg-green-600 text-white hover:bg-green-700 px-6 py-2.5 rounded-xl font-black text-sm shadow-xl shadow-green-900/30 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                         >
                           <CheckCircle className="w-4 h-4" />
-                          <span>Consult Now</span>
+                          <span>Continue consultation</span>
                         </button>
                       )}
                       {selectedCase.status === 'completed' && (
                         <span className="inline-flex items-center gap-1 px-4 py-2 bg-green-500/10 text-green-400 rounded-full text-xs font-black border border-green-500/20">
-                          ✓ Case Fully Resolved
+                          ✓ Care request completed
                         </span>
                       )}
                     </div>
@@ -2682,10 +2682,10 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   <div className="flex-1 p-6 md:p-8">
                     {detailTab === 'overview' && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-200">
-                        {/* Clinical Presentation & Symptoms */}
+                        {/* Patient-provided concern & Symptoms */}
                         <div className="space-y-6">
                           <div>
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2.5">Symptoms Presentation</h3>
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2.5">Patient concern</h3>
                             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-lg border border-blue-100">
@@ -2717,8 +2717,8 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                           {selectedCase.status === 'pending' && suggestions.length > 0 && (
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Top Match Consultants</h3>
-                                <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full font-black">AI Recommended</span>
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Suggested clinicians</h3>
+                                <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full font-black">Routing suggestion</span>
                               </div>
                               <div className="space-y-3">
                                 {suggestions.slice(0, 2).map((s) => (
@@ -2757,7 +2757,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                         {/* Location and Map details */}
                         <div className="space-y-6">
                           <div>
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2.5">Patient Location Info</h3>
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2.5">Shared location</h3>
                             {selectedCase.location ? (
                               <div className="space-y-4">
                                 <div className="h-44 w-full rounded-2xl border border-slate-200/80 overflow-hidden shadow-inner relative group">
@@ -2774,7 +2774,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                                     />
                                   </Map>
                                   <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-100 text-[9px] font-black text-slate-500 shadow-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                                    Interactive Map
+                                    Interactive location map
                                   </div>
                                 </div>
                                 
@@ -2794,7 +2794,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                                 <details className="group border border-slate-100 rounded-xl overflow-hidden bg-slate-50/50">
                                   <summary className="cursor-pointer p-3 text-xs font-bold text-slate-500 hover:text-slate-800 list-none flex items-center justify-between">
-                                    <span>Advanced Coordinates Details</span>
+                                    <span>Location details</span>
                                     <ChevronDown className="w-3.5 h-3.5 group-open:rotate-180 transition-transform" />
                                   </summary>
                                   <div className="p-3 border-t border-slate-100 text-[10px] text-slate-500 font-mono space-y-1 bg-white">
@@ -2824,13 +2824,13 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                             </div>
                             <div>
                               <h3 className="font-bold text-slate-900 text-base">{selectedCase.patientName}</h3>
-                              <p className="text-xs text-slate-400 font-medium">Verified Patient Record</p>
+                              <p className="text-xs text-slate-400 font-medium">Patient profile</p>
                             </div>
                           </div>
                           
                           <div className="p-6 grid grid-cols-2 gap-x-6 gap-y-4">
                             <div className="border-b border-slate-100/50 pb-3">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Biological Age</p>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Age</p>
                               <p className="text-sm font-bold text-slate-800 mt-1">
                                 {getDeterministicPatientData(selectedCase.id, selectedCase.patientName).age} Years
                               </p>
@@ -2842,19 +2842,19 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                               </p>
                             </div>
                             <div className="border-b border-slate-100/50 pb-3">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Severe Allergies</p>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Allergies</p>
                               <p className="text-sm font-bold text-red-600 mt-1">
                                 {getDeterministicPatientData(selectedCase.id, selectedCase.patientName).allergies}
                               </p>
                             </div>
                             <div className="border-b border-slate-100/50 pb-3">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous Visits</p>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous care visits</p>
                               <p className="text-sm font-bold text-slate-800 mt-1">
                                 {getDeterministicPatientData(selectedCase.id, selectedCase.patientName).visits} Consultations
                               </p>
                             </div>
                             <div className="col-span-2">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Current Medications</p>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Current medications</p>
                               <p className="text-sm font-bold text-indigo-600 mt-1 bg-indigo-50/50 px-3 py-1.5 rounded-xl border border-indigo-100/50 w-fit">
                                 {getDeterministicPatientData(selectedCase.id, selectedCase.patientName).currentMedication}
                               </p>
@@ -2877,13 +2877,13 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                                 referrerPolicy="no-referrer"
                               />
                               <p className="text-[10px] text-slate-400 font-medium text-center mt-2 italic">
-                                Attached Symptom Image / Clinical Diagnostic Evidence
+                                Uploaded health file
                               </p>
                             </div>
                           ) : (
                             <div className="p-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center space-y-2">
                               <Camera className="w-8 h-8 text-slate-300" />
-                              <p className="text-xs text-slate-400 italic">No files or visual evidence uploaded for this case</p>
+                              <p className="text-xs text-slate-400 italic">No health files have been uploaded for this request</p>
                             </div>
                           )}
                         </div>
@@ -2901,13 +2901,13 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                       <div className="space-y-8 animate-in fade-in duration-200">
                         {/* Beautiful graphic case timeline */}
                         <div className="space-y-6 max-w-xl mx-auto bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Patient Incident Journey</h3>
+                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Care request timeline</h3>
                           <div className="relative pl-6 space-y-6 border-l border-blue-100 ml-3">
                             <div className="relative">
                               <span className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-green-500 border-4 border-white shadow-sm flex items-center justify-center text-white text-[8px]" />
                               <div>
-                                <p className="text-sm font-bold text-slate-800">Case Created</p>
-                                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Patient submitted case details</p>
+                                <p className="text-sm font-bold text-slate-800">Request created</p>
+                                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Patient submitted the request</p>
                                 <p className="text-[10px] text-slate-400 font-mono mt-1">{new Date(selectedCase.createdAt).toLocaleString()}</p>
                               </div>
                             </div>
@@ -2928,7 +2928,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                                 <span className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm flex items-center justify-center text-white text-[8px]" />
                                 <div>
                                   <p className="text-sm font-bold text-slate-800">Consultation in progress</p>
-                                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">Interactive medical analysis in progress</p>
+                                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">Clinician review in progress</p>
                                 </div>
                               </div>
                             )}
@@ -2937,8 +2937,8 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                               <div className="relative">
                                 <span className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm flex items-center justify-center text-white text-[8px]" />
                                 <div>
-                                  <p className="text-sm font-bold text-slate-800">Prescription & Resolution</p>
-                                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">Case marked resolved, medicine dispatch authorized</p>
+                                  <p className="text-sm font-bold text-slate-800">Care plan & completion</p>
+                                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">Request completed after clinician review</p>
                                   <p className="text-[10px] text-slate-400 font-mono mt-1">{new Date(selectedCase.updatedAt).toLocaleString()}</p>
                                 </div>
                               </div>
@@ -2978,9 +2978,9 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                   <span className="text-4xl mb-4">🩺</span>
-                  <h3 className="text-lg font-bold text-slate-800">Select Patient Case</h3>
+                  <h3 className="text-lg font-bold text-slate-800">Select a care request</h3>
                   <p className="text-xs text-slate-400 max-w-sm mt-1">
-                    Select a patient from the queue column to view details, diagnosis tabs, patient profile summary, and issue treatment plans.
+                    Select a care request to review patient-provided context, routing intelligence, files, timeline, and clinician notes.
                   </p>
                 </div>
               )}
