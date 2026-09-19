@@ -284,7 +284,7 @@ const Navbar = ({ userProfile }: { userProfile: UserProfile | null }) => {
                 : "bg-amber-50 text-amber-700 border-amber-100"
             )}>
               <Database className="w-3 h-3" />
-              <span>{secureBackend.isAvailable() ? "Firebase Realtime Mode" : "Local Demo Mode"}</span>
+              <span>{secureBackend.isAvailable() ? "Secure live sync" : "Demo workspace"}</span>
             </div>
             
             {!isOnline && (
@@ -523,7 +523,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
       </aside>
 
       {/* Main Content Pane */}
-      <main className="flex-1 overflow-y-auto clinova-scrollbar p-4 md:p-8 pb-24 lg:pb-8">
+      <main className="flex-1 overflow-y-auto clinova-scrollbar p-4 md:p-8 pb-24 lg:pb-8 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,.06),transparent_32rem)]">
         
         {/* VIEW: DASHBOARD */}
         {view === 'dashboard' && (
@@ -564,7 +564,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { 
-                  title: "Start Consultation", 
+                  title: "Start clinical review", 
                   desc: "Report new symptoms", 
                   icon: Stethoscope, 
                   color: "bg-rose-50 text-rose-600 border-rose-100", 
@@ -622,7 +622,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 
                 {/* 3. Dashboard Statistics */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Account Overview</h3>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Care overview</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
                       { label: "Consultations", count: totalConsultations, subtitle: totalConsultations > 0 ? "Active history" : "No cases yet", icon: ClipboardList, color: "text-blue-600 bg-blue-50" },
@@ -860,7 +860,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3.5 rounded-2xl font-bold hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md shadow-blue-100 shrink-0 self-start"
               >
                 <Plus className="w-5 h-5" />
-                <span>+ Start New Consultation</span>
+                <span>+ Start a new care request</span>
               </button>
             </div>
 
@@ -998,7 +998,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     onClick={() => setIsCreating(true)}
                     className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
                   >
-                    Start Consultation
+                    Start clinical review
                   </button>
                 </div>
               )}
@@ -1399,13 +1399,13 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   <div className="p-6 bg-green-50 border border-green-100 rounded-3xl">
                     <div className="flex items-center gap-2 mb-4">
                       <CheckCircle className="w-5 h-5 text-green-600" />
-                      <h4 className="font-bold text-green-900">Medical Guidance & Diagnosis</h4>
+                      <h4 className="font-bold text-green-900">Clinical review & care plan</h4>
                     </div>
                     <p className="text-sm text-green-800 leading-relaxed mb-6">{viewingCase.diagnosis}</p>
                     
                     {viewingCase.medications && viewingCase.medications.length > 0 && (
                       <div className="space-y-3">
-                        <h5 className="text-xs font-bold text-green-700 uppercase tracking-wider">Prescribed Medications</h5>
+                        <h5 className="text-xs font-bold text-green-700 uppercase tracking-wider">Clinician-provided medications</h5>
                         <div className="flex flex-wrap gap-2">
                           {viewingCase.medications.map((med, i) => (
                             <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-white text-green-700 rounded-full text-xs font-bold border border-green-100 shadow-sm">
@@ -1446,7 +1446,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Status & Timeline</h4>
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Care status & timeline</h4>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <span className={cn(
@@ -1470,7 +1470,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Assignment</h4>
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Care team assignment</h4>
                     {viewingCase.assignedConsultantName ? (
                       <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-2xl border border-blue-100">
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
@@ -1478,7 +1478,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900">{viewingCase.assignedConsultantName}</p>
-                          <p className="text-[10px] text-blue-600 font-medium">Assigned Clinician</p>
+                          <p className="text-[10px] text-blue-600 font-medium">Assigned clinician</p>
                         </div>
                       </div>
                     ) : (
@@ -1503,7 +1503,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                 {viewingCase.imageUrl && (
                   <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Clinical Evidence (Image)</h4>
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Uploaded health file</h4>
                     <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
                       <img 
                         src={viewingCase.imageUrl} 
@@ -1939,7 +1939,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'queue', label: 'Patient Queue', icon: ClipboardList, badge: pendingCount },
+    { id: 'queue', label: 'Care queue', icon: ClipboardList, badge: pendingCount },
     { id: 'map', label: 'Live Map', icon: MapIcon },
     { id: 'audit', label: 'Audit Log', icon: FileText },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -1956,9 +1956,9 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
   const handleAssign = (caseId: string, consultant?: UserProfile) => {
     const targetConsultant = consultant || userProfile;
     setConfirmAction({
-      title: "Assign Case",
+      title: "Assign care request",
       message: `Are you sure you want to assign this case to ${targetConsultant.displayName || targetConsultant.email}?`,
-      confirmText: "Assign Now",
+      confirmText: "Assign request",
       onConfirm: () => {
         caseService.updateCase(caseId, {
           status: 'assigned',
@@ -2041,7 +2041,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
           <nav className="space-y-1.5">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: Home },
-              { id: 'queue', label: 'Patient Queue', icon: ClipboardList, badge: pendingCount },
+              { id: 'queue', label: 'Care queue', icon: ClipboardList, badge: pendingCount },
               { id: 'map', label: 'Live Map', icon: MapIcon },
               { id: 'audit', label: 'Audit Log', icon: FileText },
               { id: 'settings', label: 'Settings', icon: Settings },
@@ -2425,14 +2425,14 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
           </div>
         )}
 
-        {/* Patient Queue View (Workstation split screen) */}
+        {/* Care queue View (Workstation split screen) */}
         {view === 'queue' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
             {/* Left 4 cols: Searchable Queue list */}
             <div className="lg:col-span-5 xl:col-span-4 space-y-6">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-black text-slate-900">Patient Queue ({filteredAndSortedCases.length})</h2>
+                  <h2 className="text-lg font-black text-slate-900">Care queue ({filteredAndSortedCases.length})</h2>
                   <button 
                     onClick={() => setSortByPriority(prev => !prev)}
                     className={cn(
@@ -2484,7 +2484,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 </div>
               </div>
 
-              {/* Patient Queue Cards Container */}
+              {/* Care queue Cards Container */}
               <div className="space-y-4 max-h-[calc(100vh-22rem)] overflow-y-auto pr-2">
                 <AnimatePresence mode="popLayout">
                   {filteredAndSortedCases.map((c, i) => {
@@ -2623,7 +2623,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                           className="bg-blue-500 text-white hover:bg-blue-600 px-6 py-2.5 rounded-xl font-black text-sm shadow-xl shadow-blue-900/30 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                         >
                           <UserCheck className="w-4 h-4" />
-                          <span>Assign to Me</span>
+                          <span>Take this request</span>
                         </button>
                       )}
                       {selectedCase.status === 'assigned' && (
@@ -2632,7 +2632,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                           className="bg-indigo-500 text-white hover:bg-indigo-600 px-6 py-2.5 rounded-xl font-black text-sm shadow-xl shadow-indigo-900/30 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                         >
                           <Activity className="w-4 h-4" />
-                          <span>Start Consultation</span>
+                          <span>Start clinical review</span>
                         </button>
                       )}
                       {selectedCase.status === 'in-progress' && (
@@ -2744,7 +2744,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                                         onClick={() => handleAssign(selectedCase.id, s.consultant)}
                                         className="text-[10px] font-black text-blue-600 hover:underline mt-1"
                                       >
-                                        Assign Case
+                                        Assign care request
                                       </button>
                                     </div>
                                   </div>
@@ -2867,7 +2867,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                     {detailTab === 'files' && (
                       <div className="animate-in fade-in duration-200 space-y-6">
                         <div>
-                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Clinical Evidence Files</h3>
+                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Uploaded health files</h3>
                           {selectedCase.imageUrl ? (
                             <div className="max-w-md mx-auto rounded-2xl overflow-hidden border border-slate-100 shadow-md bg-slate-50 p-2">
                               <img 
@@ -2916,7 +2916,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                               <div className="relative">
                                 <span className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm flex items-center justify-center text-white text-[8px]" />
                                 <div>
-                                  <p className="text-sm font-bold text-slate-800">Assigned & Dispatched</p>
+                                  <p className="text-sm font-bold text-slate-800">Assigned to care team</p>
                                   <p className="text-[11px] text-slate-400 font-medium mt-0.5">Assigned to Dr. {selectedCase.assignedConsultantName}</p>
                                   <p className="text-[10px] text-slate-400 font-mono mt-1">{new Date(selectedCase.updatedAt).toLocaleString()}</p>
                                 </div>
@@ -2927,7 +2927,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                               <div className="relative">
                                 <span className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm flex items-center justify-center text-white text-[8px]" />
                                 <div>
-                                  <p className="text-sm font-bold text-slate-800">Consultation Underway</p>
+                                  <p className="text-sm font-bold text-slate-800">Consultation in progress</p>
                                   <p className="text-[11px] text-slate-400 font-medium mt-0.5">Interactive medical analysis in progress</p>
                                 </div>
                               </div>
@@ -2948,7 +2948,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
                         {/* Log actions specific to this case */}
                         <div className="max-w-xl mx-auto space-y-3">
-                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Clinical Log History</h3>
+                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Care activity log</h3>
                           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                             <div className="p-4 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 grid grid-cols-3">
                               <span>Action</span>
@@ -2963,7 +2963,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                               </div>
                               {selectedCase.assignedConsultantName && (
                                 <div className="p-4 text-xs grid grid-cols-3 text-slate-600">
-                                  <span className="font-bold text-slate-800">Self Assign</span>
+                                  <span className="font-bold text-slate-800">Take request</span>
                                   <span>Dr. {selectedCase.assignedConsultantName.split(' ')[0]}</span>
                                   <span className="text-right text-slate-400">{new Date(selectedCase.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
@@ -3066,7 +3066,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   <tr className="bg-slate-50 text-slate-400 font-black uppercase border-b border-slate-100">
                     <th className="p-4 tracking-wider">Case ID</th>
                     <th className="p-4 tracking-wider">Patient Name</th>
-                    <th className="p-4 tracking-wider">Assigned Clinician</th>
+                    <th className="p-4 tracking-wider">Assigned clinician</th>
                     <th className="p-4 tracking-wider">Status</th>
                     <th className="p-4 tracking-wider text-right">Last Modification</th>
                   </tr>
@@ -3309,7 +3309,7 @@ const UserManual = () => {
                   <ul className="space-y-4">
                     {[
                       "Identity verification via unique entropy tokens.",
-                      "Multimedia diagnostic evidence ingestion (Photos/Notes).",
+                      "Secure health file and note capture.",
                       "Automated geospatial router selection.",
                       "Direct feedback loop for completed consultations."
                     ].map((item, i) => (
@@ -3614,7 +3614,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 onClick={onGetStarted}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-base transition-all shadow-xl shadow-blue-200/50 flex items-center justify-center gap-2 group hover:-translate-y-0.5"
               >
-                <span>Book Consultation</span>
+                <span>Start a care request</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <Link
@@ -3658,7 +3658,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
             <div className="absolute -left-10 bottom-10 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl opacity-60" />
             
             <div className="relative w-full max-w-2xl">
-              {/* Back UI (Patient Dashboard Mock) */}
+              {/* Back UI (Patient workspace Mock) */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -3668,7 +3668,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold">AP</div>
-                    <span className="text-xs font-black text-slate-900">Patient Dashboard</span>
+                    <span className="text-xs font-black text-slate-900">Patient workspace</span>
                   </div>
                   <span className="text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-50 px-2 py-0.5 rounded-full">Active</span>
                 </div>
@@ -3695,7 +3695,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     <div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center text-amber-600 text-xs">
                       <BookOpen className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[10px] font-black text-slate-900">Medical History Summary</span>
+                    <span className="text-[10px] font-black text-slate-900">Care history summary</span>
                   </div>
                   <ChevronDown className="w-3 h-3 text-amber-400" />
                 </div>
@@ -3714,7 +3714,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </div>
               </motion.div>
 
-              {/* Front UI (Clinician Dashboard Queue Mock) */}
+              {/* Front UI (Clinician workspace Queue Mock) */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: -25 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -3848,7 +3848,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-bold text-slate-400">
-                <span>Instant Consultation Intake</span>
+                <span>Guided care intake</span>
               </div>
             </div>
 
@@ -3896,7 +3896,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-bold text-slate-400">
-                <span>Clinical History Audits</span>
+                <span>Care activity audit trail</span>
               </div>
             </div>
           </div>
@@ -3919,7 +3919,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                title: "AI Diagnosis & Routing",
+                title: "Care navigation & routing",
                 subtitle: "Intelligently analyzes patient symptoms and automatically routes each case to the most appropriate medical specialist.",
                 desc: "Reduce waiting times with AI-assisted triage, specialty-based matching, and priority-aware case distribution to ensure patients receive timely care.",
                 benefit: "⚡ Faster Triage",
@@ -3930,7 +3930,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 benefitBg: "bg-purple-50/70 text-purple-700 border-purple-100"
               },
               {
-                title: "HD Video Consultation",
+                title: "Secure video consultation",
                 subtitle: "Experience secure, high-definition video consultations designed for effective remote healthcare.",
                 desc: "Connect with doctors through low-latency video calls that support real-time assessments, follow-up appointments, and personalized treatment discussions.",
                 benefit: "🔒 End-to-End Secure",
@@ -4039,7 +4039,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black uppercase">
-              <Stethoscope className="w-3.5 h-3.5" /> Workflow Timeline
+              <Stethoscope className="w-3.5 h-3.5" /> Care workflow timeline
             </div>
             <h2 className="text-4xl font-black text-slate-900 tracking-tight">The Clinova Care Journey</h2>
             <p className="text-slate-500 text-base max-w-2xl mx-auto">
@@ -4074,7 +4074,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
               },
               {
                 step: "04",
-                title: "Specialist Consultation",
+                title: "Specialist care",
                 desc: "Consult with a specialist doctor, receive your digital prescription, and monitor recovery progress.",
                 icon: CheckCircle,
                 color: "text-emerald-500"
@@ -4118,14 +4118,14 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'patient' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 <UserIcon className="w-4 h-4" />
-                <span>Patient Dashboard View</span>
+                <span>Patient workspace View</span>
               </button>
               <button 
                 onClick={() => setActiveTab('clinician')}
                 className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'clinician' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 <Activity className="w-4 h-4" />
-                <span>Clinician Dashboard View</span>
+                <span>Clinician workspace view</span>
               </button>
             </div>
           </div>
@@ -4137,11 +4137,11 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-6 border-b border-slate-100">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mock Profile ID: PT-04892</p>
-                    <h3 className="text-2xl font-black text-slate-900">Patient Dashboard Preview</h3>
+                    <h3 className="text-2xl font-black text-slate-900">Patient workspace preview</h3>
                   </div>
                   <div className="flex gap-3">
                     <button onClick={onGetStarted} className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
-                      + Create Consultation Request
+                      + Create care request
                     </button>
                     <button onClick={onGetStarted} className="px-4 py-2 bg-slate-50 text-slate-600 border border-slate-100 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5">
                       <Edit2 className="w-3.5 h-3.5" /> Edit Profile
@@ -4186,7 +4186,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                           <BookOpen className="w-5 h-5" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-slate-900 text-sm">Medical History Summary</h4>
+                          <h4 className="font-bold text-slate-900 text-sm">Care history summary</h4>
                           <p className="text-xs text-amber-600 uppercase font-black">All past consultations categorized locally</p>
                         </div>
                       </div>
@@ -4195,7 +4195,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
                     <div className="space-y-4">
                       <p className="text-xs font-black text-slate-900 flex items-center gap-2 uppercase tracking-wider">
-                        <HistoryIcon className="w-4 h-4 text-slate-400" /> Case History Timeline
+                        <HistoryIcon className="w-4 h-4 text-slate-400" /> Care request timeline
                       </p>
                       <div className="p-5 border border-slate-100 rounded-2xl bg-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="space-y-1.5">
@@ -4230,7 +4230,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                 </div>
 
                 <div className="flex flex-col lg:flex-row border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/50">
-                  {/* Left Patient Queue sidebar lists */}
+                  {/* Left Care queue sidebar lists */}
                   <div className="w-full lg:w-1/3 bg-slate-50 p-5 border-r border-slate-100 space-y-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Incoming Queue</span>
@@ -4269,7 +4269,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                         </div>
                       </div>
                       <button onClick={onGetStarted} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-100">
-                        Start Case Consultation
+                        Open care request
                       </button>
                     </div>
 
@@ -4397,7 +4397,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
             {[
               {
                 title: "End-to-End Cryptography",
-                desc: "Consultation details, diagnostics reports, and symptoms details are packaged securely directly on-client before transport.",
+                desc: "Consultation details, health files, and patient-provided context are packaged securely before transport.",
                 icon: ShieldCheck,
                 color: "bg-blue-500/10 text-blue-400"
               },
