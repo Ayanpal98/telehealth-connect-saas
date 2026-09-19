@@ -4875,6 +4875,12 @@ const Login = ({ role, onBack }: { role: 'patient' | 'clinician'; onBack?: () =>
           {loginError && <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-100 text-xs font-bold text-red-700">{loginError}</div>}
           {resetMessage && <div role="status" className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-bold text-emerald-700">{resetMessage}</div>}
 
+        <div className="mt-6 text-center">
+          <Link to={role === 'patient' ? '/patient/register' : '/clinician/apply'} className="text-sm font-black text-blue-600 hover:text-blue-700">
+            {role === 'patient' ? 'New to Clinova? Create a patient account' : 'Not registered? Apply for clinician access'}
+          </Link>
+        </div>
+
           <button 
             onClick={handleLogin}
             disabled={isLoading}
@@ -5000,6 +5006,8 @@ export default function App() {
         <div className="min-h-screen bg-slate-50 font-sans clinova-page">
           {userProfile && <Navbar userProfile={userProfile} />}
           <Routes>
+            <Route path="/patient/register" element={<PatientRegister onBack={() => window.history.back()} />} />
+            <Route path="/clinician/apply" element={<ClinicianApply onBack={() => window.history.back()} />} />
             <Route path="/patient/login" element={!userProfile ? <Login role="patient" onBack={() => window.history.back()} /> : <Navigate to="/" replace />} />
             <Route path="/clinician/login" element={!userProfile ? <Login role="clinician" onBack={() => window.history.back()} /> : <Navigate to="/" replace />} />
             <Route path="/manual" element={<UserManual />} />
