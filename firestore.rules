@@ -10,34 +10,79 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function profile(uid) {
+      return get(/databases/$(database)/documents/profiles/$(uid)).data;
+    }
+
     function isAdmin() {
+      return signedIn() && profile(request.auth.uid).role == 'admin';
+    }
+
+    function isClinician() {
+      return signedIn() && profile(request.auth.uid).role == 'clinician';
+    }
+
+    function hasCaseAssignment(caseId) {
       return signedIn() &&
-        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+        exists(/databases/$(database)/documents/caseAssignments/$(caseId + "_" + request.auth.uid));
     }
 
     match /profiles/{uid} {
       allow read: if isSelf(uid) || isAdmin();
-      allow create: if isSelf(uid);
-      allow update: if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid) && request.resource.data.role == 'patient';
+      allow update: if isAdmin() ||
+        (isSelf(uid) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasNone([
+           'role',
+           'verificationStatus',
+           'verificationSource',
+           'registrationNumber'
+         ]));
       allow delete: if isAdmin();
     }
 
     match /cases/{caseId} {
-      allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
+      allow create: if signedIn() &&
+        request.resource.data.patientId == request.auth.uid;
+
       allow read: if signedIn() &&
         (resource.data.patientId == request.auth.uid ||
          resource.data.assignedConsultantId == request.auth.uid ||
+         hasCaseAssignment(caseId) ||
          isAdmin());
-      allow update: if signedIn() &&
-        (resource.data.patientId == request.auth.uid ||
-         resource.data.assignedConsultantId == request.auth.uid ||
-         isAdmin());
+
+      allow update: if isAdmin() ||
+        (signedIn() &&
+         resource.data.patientId == request.auth.uid &&
+         request.resource.data.patientId == resource.data.patientId &&
+         request.resource.data.assignedConsultantId == resource.data.assignedConsultantId) ||
+        (isClinician() &&
+         hasCaseAssignment(caseId) &&
+         request.resource.data.patientId == resource.data.patientId);
+
       allow delete: if isAdmin();
+    }
+
+    match /caseAssignments/{assignmentId} {
+      allow read: if signedIn() &&
+        (resource.data.clinicianId == request.auth.uid ||
+         resource.data.patientId == request.auth.uid ||
+         isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /clinicianNotifications/{notificationId} {
+      allow read: if signedIn() &&
+        (resource.data.clinicianId == request.auth.uid || isAdmin());
+      allow update: if signedIn() &&
+        resource.data.clinicianId == request.auth.uid;
+      allow create, delete: if isAdmin();
     }
 
     match /auditLogs/{logId} {
       allow read: if isAdmin();
-      allow create: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.performedBy == request.auth.uid;
       allow update, delete: if false;
     }
   }
