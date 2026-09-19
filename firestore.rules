@@ -57,6 +57,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /clinicianApplications/{uid} {
+      allow create: if isSelf(uid) && !hasProfile() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow read: if isSelf(uid) || isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     match /cases/{caseId} {
       allow create: if isPatient() &&
         request.resource.data.patientId == request.auth.uid;

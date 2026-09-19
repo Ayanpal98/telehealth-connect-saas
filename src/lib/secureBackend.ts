@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirebaseClient } from './firebaseClient';
 import { MedicalCase, UserProfile, AuditLog } from '../types';
 
@@ -8,6 +8,53 @@ export interface BackendCaseInput extends Omit<MedicalCase, 'id' | 'createdAt' |
 
 export const secureBackend = {
   isAvailable: () => Boolean(getFirebaseClient()),
+
+  createApplicantAccount: async (email: string, password: string) => {
+    const client = getFirebaseClient();
+    if (!client) throw new Error('Firebase backend is not configured.');
+    const credential = await createUserWithEmailAndPassword(client.auth, email.trim().toLowerCase(), password);
+    return credential.user;
+  },
+
+  registerPatient: async (email: string, password: string, displayName: string) => {
+    const client = getFirebaseClient();
+    if (!client) throw new Error('Firebase backend is not configured.');
+    const credential = await createUserWithEmailAndPassword(client.auth, email.trim().toLowerCase(), password);
+    await setDoc(doc(client.db, 'profiles', credential.user.uid), {
+      uid: credential.user.uid,
+      email: credential.user.email || email.trim().toLowerCase(),
+      displayName: displayName.trim(),
+      role: 'patient',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return credential.user;
+  },
+
+  submitClinicianApplication: async (application: {
+    fullName: string;
+    email: string;
+    phone: string;
+    specialty: string;
+    registrationNumber: string;
+    locality: string;
+    consultationModes: string[];
+    qualifications: string;
+    experience: string;
+  }) => {
+    const client = getFirebaseClient();
+    if (!client?.auth.currentUser) throw new Error('Please create your clinician application account first.');
+    const uid = client.auth.currentUser.uid;
+    await setDoc(doc(client.db, 'clinicianApplications', uid), {
+      ...application,
+      uid,
+      email: client.auth.currentUser.email || application.email.trim().toLowerCase(),
+      status: 'pending',
+      submittedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return uid;
+  },
 
   signIn: async (email: string, password: string) => {
     const client = getFirebaseClient();
