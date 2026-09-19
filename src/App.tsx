@@ -489,7 +489,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setView(item.id as any)}
+                  onClick={() => selectView(item.id as typeof view)}
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all group",
                     isActive 
@@ -1237,7 +1237,7 @@ const PatientDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
           return (
             <button
               key={item.id}
-              onClick={() => setView(item.id as any)}
+              onClick={() => selectView(item.id as typeof view)}
               className={cn(
                 "flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all",
                 isActive ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
@@ -1740,6 +1740,8 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
   const [detailTab, setDetailTab] = useState<'overview' | 'history' | 'files' | 'notes' | 'timeline'>('overview');
   const [suggestions, setSuggestions] = useState<ConsultantSuggestion[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning' }[]>([]);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const prevCasesRef = useRef<MedicalCase[]>([]);
   
   // Search & Filter state for queue
@@ -1935,6 +1937,21 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
     }
   }, [selectedCase]);
 
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'queue', label: 'Patient Queue', icon: ClipboardList, badge: pendingCount },
+    { id: 'map', label: 'Live Map', icon: MapIcon },
+    { id: 'audit', label: 'Audit Log', icon: FileText },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ] as const;
+
+  const unreadNotifications = notifications.length;
+
+  const selectView = (nextView: typeof view) => {
+    setView(nextView);
+    setMobileNavOpen(false);
+  };
+
   // Actions
   const handleAssign = (caseId: string, consultant?: UserProfile) => {
     const targetConsultant = consultant || userProfile;
@@ -2031,7 +2048,7 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setView(item.id as any)}
+                onClick={() => selectView(item.id as typeof view)}
                 className={cn(
                   "w-full px-4 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-between group",
                   view === item.id 
@@ -2091,12 +2108,30 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
       {/* Main Panel Content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto space-y-8 w-full">
+        {/* Mobile workspace navigation */}
+        <AnimatePresence>
+          {mobileNavOpen && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="md:hidden bg-white border border-slate-200 rounded-2xl p-2 shadow-xl">
+              {navigationItems.map((item) => (
+                <button key={item.id} onClick={() => selectView(item.id as typeof view)} className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold", view === item.id ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
+                  <span className="flex items-center gap-3"><item.icon className="w-4 h-4" />{item.label}</span>
+                  {item.badge ? <span className="text-[10px] font-black bg-blue-600 text-white rounded-full px-2 py-0.5">{item.badge}</span> : null}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Header Widget */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
           {/* Subtle abstract color splash */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full filter blur-2xl -mr-16 -mt-16 pointer-events-none" />
           
-          <div className="flex items-center gap-4 relative z-10">
+          <div className="flex items-center gap-2 relative z-10">
+            <button onClick={() => setMobileNavOpen(v => !v)} className="md:hidden w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 flex items-center justify-center" aria-label="Open workspace navigation">
+              <ClipboardList className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl shrink-0 shadow-inner">
               👨‍⚕️
             </div>
@@ -2161,8 +2196,36 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                 </button>
               ))}
             </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 relative z-10">
+            <button onClick={() => setShowNotificationCenter(v => !v)} className="relative w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors flex items-center justify-center" aria-label="Open notifications">
+              <Bell className="w-4 h-4" />
+              {unreadNotifications > 0 && <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center">{unreadNotifications}</span>}
+            </button>
           </div>
         </header>
+
+        {showNotificationCenter && (
+          <div className="relative z-30">
+            <div className="absolute right-0 top-0 w-full sm:w-[380px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div><p className="text-sm font-black text-slate-900">Notifications</p><p className="text-[10px] text-slate-400 font-semibold mt-0.5">Real-time workspace updates</p></div>
+                <button onClick={() => setShowNotificationCenter(false)} className="text-xs font-bold text-slate-400 hover:text-slate-700">Close</button>
+              </div>
+              <div className="max-h-80 overflow-y-auto clinova-scrollbar">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center"><Bell className="w-7 h-7 text-slate-300 mx-auto mb-2" /><p className="text-xs font-bold text-slate-500">You're all caught up.</p><p className="text-[10px] text-slate-400 mt-1">New routed cases will appear here.</p></div>
+                ) : notifications.slice().reverse().map(note => (
+                  <div key={note.id} className="p-4 border-b border-slate-50 flex gap-3">
+                    <span className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", note.type === 'warning' ? "bg-amber-500" : note.type === 'success' ? "bg-emerald-500" : "bg-blue-500")} />
+                    <p className="text-xs font-semibold text-slate-700 leading-relaxed">{note.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Dashboard Home View */}
         {view === 'dashboard' && (
