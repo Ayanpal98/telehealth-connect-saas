@@ -2197,7 +2197,10 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
                   <p className={cn("text-3xl font-black mt-2", "text-amber-600")}>{cases.filter(c => ['pending','assigned'].includes(c.status)).length}</p>
                 </div>
             </div>
-{view === 'dashboard' && (
+          </div>
+        )}
+
+        {view === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* Summary widgets cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
