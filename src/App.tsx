@@ -4655,8 +4655,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
 // --- Login Page ---
 
-const Login = ({ onBack }: { onBack?: () => void }) => {
-  const [role, setRole] = useState<UserRole>('patient');
+const Login = ({ role, onBack }: { role: 'patient' | 'clinician'; onBack?: () => void }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -4701,7 +4700,18 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
 
         <div className="text-center mb-10 pt-4">
           <TeleHealthLogo size={110} variant="full" showTagline={true} className="mb-6" />
-          <p className="text-gray-500 mt-1 font-medium text-sm">Select your portal to continue providing or receiving care.</p>
+          <div className={cn(
+            "inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest",
+            role === 'patient' ? "bg-blue-50 text-blue-700" : "bg-indigo-50 text-indigo-700"
+          )}>
+            {role === 'patient' ? <UserIcon className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+            {role === 'patient' ? 'Patient Portal' : 'Clinician Portal'}
+          </div>
+          <p className="text-gray-500 mt-4 font-medium text-sm">
+            {role === 'patient'
+              ? 'Sign in to request care, follow your care journey, and securely communicate with your care team.'
+              : 'Sign in to manage your care queue, review assigned requests, and document clinician-led care.'}
+          </p>
         </div>
 
         <div className="space-y-8">
@@ -4713,7 +4723,7 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="doctor@hospital.com"
+                placeholder={role === 'patient' ? 'you@example.com' : 'clinician@hospital.com'}
                 className="w-full pl-14 pr-6 py-5 rounded-3xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none transition-all font-bold text-gray-900 border-2 border-transparent focus:border-blue-600"
               />
             </div>
@@ -4756,42 +4766,6 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
             </div>
           )}
 
-          <div className="space-y-3">
-            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 ml-2">I am entering as a</label>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => setRole('patient')}
-                className={cn(
-                  "p-8 rounded-[2rem] border-4 transition-all flex flex-col items-center gap-4 group",
-                  role === 'patient' ? "border-blue-600 bg-blue-50 text-blue-700 shadow-lg shadow-blue-100" : "border-gray-50 bg-gray-50 text-gray-500 hover:border-gray-100"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                  role === 'patient' ? "bg-blue-600 text-white" : "bg-white text-gray-400"
-                )}>
-                  <UserIcon className="w-6 h-6" />
-                </div>
-                <span className="font-black text-lg">Patient</span>
-              </button>
-              <button 
-                onClick={() => setRole('clinician')}
-                className={cn(
-                  "p-8 rounded-[2rem] border-4 transition-all flex flex-col items-center gap-4 group",
-                  role === 'clinician' ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-lg shadow-indigo-100" : "border-gray-50 bg-gray-50 text-gray-500 hover:border-gray-100"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                  role === 'clinician' ? "bg-indigo-600 text-white" : "bg-white text-gray-400"
-                )}>
-                  <Users className="w-6 h-6" />
-                </div>
-                <span className="font-black text-lg">Clinician</span>
-              </button>
-            </div>
-          </div>
-
           {loginError && <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-100 text-xs font-bold text-red-700">{loginError}</div>}
           {resetMessage && <div role="status" className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-bold text-emerald-700">{resetMessage}</div>}
 
@@ -4809,7 +4783,7 @@ const Login = ({ onBack }: { onBack?: () => void }) => {
             ) : (
               <>
                 <ShieldCheck className="w-6 h-6" />
-                <span>Secure Sign In</span>
+                <span>{role === 'patient' ? 'Sign In to Patient Portal' : 'Sign In to Clinician Portal'}</span>
               </>
             )}
           </button>
@@ -4919,13 +4893,15 @@ export default function App() {
         <div className="min-h-screen bg-slate-50 font-sans clinova-page">
           {userProfile && <Navbar userProfile={userProfile} />}
           <Routes>
+            <Route path="/patient/login" element={!userProfile ? <Login role="patient" onBack={() => window.history.back()} /> : <Navigate to="/" replace />} />
+            <Route path="/clinician/login" element={!userProfile ? <Login role="clinician" onBack={() => window.history.back()} /> : <Navigate to="/" replace />} />
             <Route path="/manual" element={<UserManual />} />
             <Route 
               path="/" 
               element={
                 !userProfile ? (
                   showLogin ? (
-                    <Login onBack={() => setShowLogin(false)} />
+                    <Login role="patient" onBack={() => setShowLogin(false)} />
                   ) : (
                     <WelcomePage onGetStarted={() => setShowLogin(true)} />
                   )
