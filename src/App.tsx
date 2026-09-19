@@ -4653,6 +4653,112 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: (role: 'patient' | 'clini
   );
 };
 
+const PatientRegister = ({ onBack }: { onBack: () => void }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!name.trim() || !email.trim() || password.length < 8) {
+      setError('Enter your name, a valid email, and a password of at least 8 characters.');
+      return;
+    }
+    setBusy(true); setError('');
+    try {
+      await secureBackend.registerPatient(email, password, name);
+      window.dispatchEvent(new Event('auth-change'));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to create your patient account.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-xl bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-slate-100">
+        <button onClick={onBack} className="text-sm font-bold text-slate-500 hover:text-blue-600">← Back to Patient Portal</button>
+        <div className="mt-8">
+          <p className="clinova-eyebrow">Patient registration</p>
+          <h1 className="clinova-page-title mt-2">Create your patient account</h1>
+          <p className="clinova-muted mt-3">Create a secure account to request care and follow your care journey.</p>
+        </div>
+        <div className="mt-8 space-y-4">
+          <input className="clinova-input w-full px-5 py-4 font-semibold" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} />
+          <input className="clinova-input w-full px-5 py-4 font-semibold" type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} />
+          <input className="clinova-input w-full px-5 py-4 font-semibold" type="password" placeholder="Password (8+ characters)" value={password} onChange={e=>setPassword(e.target.value)} />
+          {error && <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-700">{error}</div>}
+          <button disabled={busy} onClick={submit} className="w-full clinova-primary rounded-2xl py-4 font-black">{busy ? 'Creating account…' : 'Create Patient Account'}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
+  const [form, setForm] = useState({fullName:'',email:'',password:'',phone:'',specialty:'',registrationNumber:'',locality:'',consultationModes:'chat, audio',qualifications:'',experience:''});
+  const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const set=(key:string,value:string)=>setForm(prev=>({...prev,[key]:value}));
+
+  const submit = async () => {
+    if (!form.fullName || !form.email || form.password.length < 8 || !form.phone || !form.specialty || !form.registrationNumber || !form.qualifications) {
+      setError('Please complete your name, email, password, phone, specialty, professional registration number, and qualifications.');
+      return;
+    }
+    setBusy(true); setError('');
+    try {
+      await secureBackend.registerPatient(form.email, form.password, form.fullName);
+      await secureBackend.submitClinicianApplication({
+        fullName: form.fullName, email: form.email, phone: form.phone, specialty: form.specialty,
+        registrationNumber: form.registrationNumber, locality: form.locality,
+        consultationModes: form.consultationModes.split(',').map(x=>x.trim()).filter(Boolean),
+        qualifications: form.qualifications, experience: form.experience
+      });
+      await authService.signOut();
+      setSubmitted(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to submit clinician application.');
+    } finally { setBusy(false); }
+  };
+
+  if (submitted) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="max-w-lg w-full bg-white rounded-[2.5rem] p-10 text-center shadow-xl border border-slate-100">
+        <CheckCircle className="w-14 h-14 text-emerald-500 mx-auto" />
+        <p className="clinova-eyebrow mt-6">Application submitted</p>
+        <h1 className="text-3xl font-black text-slate-900 mt-2">Your clinician application is under review.</h1>
+        <p className="clinova-muted mt-4">An authorized Clinova administrator must verify and approve your professional profile before clinician access is activated.</p>
+        <button onClick={onBack} className="mt-7 w-full clinova-primary rounded-2xl py-4 font-black">Back to Clinician Portal</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 py-10">
+      <div className="w-full max-w-2xl bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-slate-100">
+        <button onClick={onBack} className="text-sm font-bold text-slate-500 hover:text-indigo-600">← Back to Clinician Portal</button>
+        <div className="mt-8">
+          <p className="clinova-eyebrow">Clinician onboarding</p>
+          <h1 className="clinova-page-title mt-2">Apply for clinician access</h1>
+          <p className="clinova-muted mt-3">Submit your professional details for verification. This application does not grant clinician access automatically.</p>
+        </div>
+        <div className="mt-8 grid md:grid-cols-2 gap-4">
+          {[
+            ['fullName','Full name'],['email','Professional email'],['phone','Phone number'],['specialty','Specialty'],['registrationNumber','Professional registration number'],['locality','City / locality'],['qualifications','Qualifications'],['experience','Experience summary']
+          ].map(([key,placeholder])=><input key={key} className="clinova-input px-5 py-4 font-semibold" type={key==='email'?'email':'text'} placeholder={placeholder} value={(form as any)[key]} onChange={e=>set(key,e.target.value)} />)}
+          <input className="clinova-input px-5 py-4 font-semibold" type="password" placeholder="Create password (8+ characters)" value={form.password} onChange={e=>set('password',e.target.value)} />
+          <input className="clinova-input px-5 py-4 font-semibold" placeholder="Consultation modes: chat, audio, video" value={form.consultationModes} onChange={e=>set('consultationModes',e.target.value)} />
+        </div>
+        {error && <div role="alert" className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-700">{error}</div>}
+        <button disabled={busy} onClick={submit} className="mt-6 w-full bg-indigo-600 text-white rounded-2xl py-4 font-black">{busy ? 'Submitting application…' : 'Submit for Verification'}</button>
+        <p className="mt-4 text-xs text-slate-400 font-semibold text-center">Clinician access is activated only after authorized verification and approval.</p>
+      </div>
+    </div>
+  );
+};
+
 // --- Login Page ---
 
 const Login = ({ role, onBack }: { role: 'patient' | 'clinician'; onBack?: () => void }) => {
