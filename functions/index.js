@@ -59,7 +59,6 @@ exports.routeNewCase = onDocumentCreated(
 
       if (clinician.verificationStatus === "rejected") continue;
       if (clinician.acceptingNewCases === false) continue;
-      if (clinician.isAvailable !== true) continue;
 
       const specialty = specialtyScore(clinician, recommendedSpecialty);
       if (specialty === 0) continue;
@@ -75,7 +74,7 @@ exports.routeNewCase = onDocumentCreated(
       }
 
       const verified = clinician.verificationStatus === "verified" ? 15 : 0;
-      const availability = 15;
+      const availability = clinician.isAvailable === true ? 15 : 0;
       const accepting = 5;
       const score = Math.min(100, Math.round(
         specialty + proximity + verified + availability + accepting
@@ -85,7 +84,9 @@ exports.routeNewCase = onDocumentCreated(
         clinician.specialty === recommendedSpecialty
           ? "Specialty matches the suggested care pathway."
           : "Suitable for initial general-care navigation.",
-        "Currently marked available.",
+        clinician.isAvailable === true
+          ? "Currently marked available."
+          : "Profile is registered but not currently marked available."
         clinician.verificationStatus === "verified"
           ? "Profile is verified."
           : "Profile verification is pending."
