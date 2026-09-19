@@ -53,3 +53,36 @@ The Firebase path is still not a healthcare compliance certification. Before rea
 - Notifications.
 - Secure document/report lifecycle.
 - Automated security tests and CI.
+
+## Real-time patient -> clinician routing
+
+The production path now includes a Firebase Cloud Function trigger:
+
+1. Patient creates a case in Firestore.
+2. routeNewCase is triggered automatically by the new case.
+3. The server reads clinician profiles, applies specialty + locality/service-radius + verification + availability matching, and selects a primary clinician.
+4. Server-created caseAssignments records are written for every eligible matching clinician.
+5. Server-created clinicianNotifications records are written for the same clinicians.
+6. The clinician portal listens to caseAssignments with Firestore onSnapshot, so routed cases appear without refresh.
+7. The patient portal listens to its own case stream, so the patient sees the assignment/status update in real time.
+
+The routing function is intentionally server-side because the client must not read the entire clinician directory just to perform matching. Firebase Cloud Functions run in a trusted environment and can read/write Firestore independently of client security rules.
+
+### Deploy the routing trigger
+
+After connecting the Firebase project and installing the Firebase CLI:
+
+    cd functions
+    npm install
+    cd ..
+    firebase deploy --only functions,firestore:rules,firestore:indexes,storage
+
+The function is configured for asia-south1. Make sure the Firebase project has Cloud Functions enabled and billing/plan requirements satisfied before deployment.
+
+### Expected live behavior
+
+Patient portal: Submit Case -> Firestore create -> routing trigger -> assigned/routed status.
+
+Clinician portal: Firestore assignment -> real-time snapshot -> case appears + in-app notification.
+
+No manual refresh or clinician-side polling is required.
