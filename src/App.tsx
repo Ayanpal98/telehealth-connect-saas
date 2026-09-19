@@ -4801,19 +4801,60 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    const loadProfile = async (firebaseUser: { uid: string } | null) => {
+      if (!firebaseUser) {
+        if (!cancelled) {
+          setUserProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
-        const profile = await authService.getCurrentUser();
-        setUserProfile(profile);
-      } finally {
-        setLoading(false);
+        const profile = await secureBackend.getProfile(firebaseUser.uid);
+        if (!cancelled) {
+          setUserProfile(profile);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setUserProfile(null);
+          setLoading(false);
+        }
       }
     };
 
-    window.addEventListener('auth-change', checkAuth);
-    checkAuth();
+    if (secureBackend.isAvailable()) {
+      unsubscribe = authService.subscribeToAuthState(user => {
+        void loadProfile(user);
+      });
+    } else {
+      void authService.getCurrentUser().then(profile => {
+        if (!cancelled) {
+          setUserProfile(profile);
+          setLoading(false);
+        }
+      });
+    }
 
-    return () => window.removeEventListener('auth-change', checkAuth);
+    const handleAuthChange = () => {
+      if (!secureBackend.isAvailable()) {
+        void authService.getCurrentUser().then(profile => {
+          if (!cancelled) setUserProfile(profile);
+        });
+      }
+    };
+
+    window.addEventListener('auth-change', handleAuthChange);
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+      window.removeEventListener('auth-change', handleAuthChange);
+    };
   }, []);
 
   if (loading) return <LoadingScreen />;
