@@ -2166,6 +2166,38 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
 
         {/* Dashboard Home View */}
         {view === 'dashboard' && (
+          <div className="space-y-6 max-w-7xl mx-auto">
+            <div className="rounded-[2rem] bg-slate-950 text-white p-6 md:p-8 shadow-xl shadow-slate-200 overflow-hidden relative">
+              <div className="absolute -right-16 -top-20 w-64 h-64 rounded-full bg-blue-500/20 blur-3xl" />
+              <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-blue-300 text-[10px] font-black uppercase tracking-[0.2em]"><Activity className="w-3.5 h-3.5" /> Clinova workspace</div>
+                  <h1 className="text-2xl md:text-3xl font-black tracking-tight mt-2">Good to see you, {userProfile.displayName || userProfile.email.split('@')[0]}</h1>
+                  <p className="text-sm text-slate-300 font-semibold mt-2 max-w-2xl">Your consultation workspace. New patient requests are routed here in real time so you can review, accept and manage care from one place.</p>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/10 border border-white/10 text-xs font-black"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live routing</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              
+                <div key="New requests" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">New requests</p>
+                  <p className={cn("text-3xl font-black mt-2", "text-blue-600")}>{cases.filter(c => c.status === 'pending').length}</p>
+                </div>
+                <div key="In consultation" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">In consultation</p>
+                  <p className={cn("text-3xl font-black mt-2", "text-indigo-600")}>{cases.filter(c => c.status === 'in-progress').length}</p>
+                </div>
+                <div key="Completed" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Completed</p>
+                  <p className={cn("text-3xl font-black mt-2", "text-emerald-600")}>{cases.filter(c => c.status === 'completed').length}</p>
+                </div>
+                <div key="Needs attention" className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Needs attention</p>
+                  <p className={cn("text-3xl font-black mt-2", "text-amber-600")}>{cases.filter(c => ['pending','assigned'].includes(c.status)).length}</p>
+                </div>
+            </div>
+{view === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* Summary widgets cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
