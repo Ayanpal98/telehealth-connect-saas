@@ -3470,7 +3470,7 @@ const UserManual = () => {
 
 // --- Welcome Page ---
 
-const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
+const WelcomePage = ({ onGetStarted }: { onGetStarted: (role: 'patient' | 'clinician') => void }) => {
   const [activeTab, setActiveTab] = useState<'patient' | 'clinician'>('patient');
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -3551,13 +3551,13 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
           {/* Right Action CTA Buttons */}
           <div className="flex items-center gap-4">
             <button 
-              onClick={onGetStarted}
+              onClick={() => onGetStarted(activeTab)}
               className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors px-3 py-2"
             >
               Sign In
             </button>
             <button 
-              onClick={onGetStarted}
+              onClick={() => onGetStarted(activeTab)}
               className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-100 flex items-center gap-1.5 group"
             >
               Get Started
@@ -3611,7 +3611,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
             
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 pt-2">
               <button 
-                onClick={onGetStarted}
+                onClick={() => onGetStarted(activeTab)}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-base transition-all shadow-xl shadow-blue-200/50 flex items-center justify-center gap-2 group hover:-translate-y-0.5"
               >
                 <span>Start a care request</span>
@@ -4140,10 +4140,10 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     <h3 className="text-2xl font-black text-slate-900">Patient workspace preview</h3>
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={onGetStarted} className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
+                    <button onClick={() => onGetStarted(activeTab)} className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
                       + Create care request
                     </button>
-                    <button onClick={onGetStarted} className="px-4 py-2 bg-slate-50 text-slate-600 border border-slate-100 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+                    <button onClick={() => onGetStarted(activeTab)} className="px-4 py-2 bg-slate-50 text-slate-600 border border-slate-100 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center gap-1.5">
                       <Edit2 className="w-3.5 h-3.5" /> Edit Profile
                     </button>
                   </div>
@@ -4207,7 +4207,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-[10px] font-black text-green-500 uppercase px-3 py-1 bg-green-50 rounded-full border border-green-100">Completed</span>
-                          <button onClick={onGetStarted} className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-bold hover:bg-black transition-all">Details</button>
+                          <button onClick={() => onGetStarted(activeTab)} className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-bold hover:bg-black transition-all">Details</button>
                         </div>
                       </div>
                     </div>
@@ -4268,7 +4268,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
                           <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 text-blue-600 rounded-full text-[9px] font-black uppercase">Emergency Medicine</span>
                         </div>
                       </div>
-                      <button onClick={onGetStarted} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-100">
+                      <button onClick={() => onGetStarted(activeTab)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-100">
                         Open care request
                       </button>
                     </div>
@@ -4577,7 +4577,7 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: () => void }) => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
             <button 
-              onClick={onGetStarted}
+              onClick={() => onGetStarted(activeTab)}
               className="px-10 py-5 bg-white text-blue-700 rounded-2xl font-black text-base hover:bg-slate-50 transition-all shadow-xl shadow-slate-900/10 hover:scale-105"
             >
               Enter Dashboard Portal
@@ -4801,6 +4801,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [loginRole, setLoginRole] = useState<'patient' | 'clinician'>('patient');
   const [authError, setAuthError] = useState('');
 
   useEffect(() => {
@@ -4901,9 +4902,9 @@ export default function App() {
               element={
                 !userProfile ? (
                   showLogin ? (
-                    <Login role="patient" onBack={() => setShowLogin(false)} />
+                    <Login role={loginRole} onBack={() => setShowLogin(false)} />
                   ) : (
-                    <WelcomePage onGetStarted={() => setShowLogin(true)} />
+                    <WelcomePage onGetStarted={(role) => { setLoginRole(role); setShowLogin(true); }} />
                   )
                 ) : (
                   userProfile.role === 'clinician' 
