@@ -85,10 +85,12 @@ export const authService = {
     }
     const existing = await secureBackend.getProfile(credential.user.uid);
     if (!existing) {
+      await secureBackend.signOut();
       throw new Error('Your account is authenticated, but no Clinova profile is provisioned yet. Ask an administrator to create your profile.');
     }
 
     if (existing.role !== role) {
+      await secureBackend.signOut();
       throw new Error(`This account is provisioned as ${existing.role}, not ${role}.`);
     }
 
