@@ -23,6 +23,9 @@ export const secureBackend = {
   getProfile: async (uid: string): Promise<UserProfile | null> => {
     const client = getFirebaseClient();
     if (!client) return null;
+    if (client.auth.currentUser && client.auth.currentUser.uid !== uid) {
+      throw new Error('You are not authorized to access this profile.');
+    }
     const snapshot = await getDoc(doc(client.db, 'profiles', uid));
     return snapshot.exists() ? snapshot.data() as UserProfile : null;
   },
@@ -30,6 +33,9 @@ export const secureBackend = {
   saveProfile: async (profile: UserProfile) => {
     const client = getFirebaseClient();
     if (!client) throw new Error('Firebase backend is not configured.');
+    if (!client.auth.currentUser || client.auth.currentUser.uid !== profile.uid) {
+      throw new Error('You are not authorized to update this profile.');
+    }
     await setDoc(doc(client.db, 'profiles', profile.uid), {
       ...profile,
       updatedAt: serverTimestamp(),
