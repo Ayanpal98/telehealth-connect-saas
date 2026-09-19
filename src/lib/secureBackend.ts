@@ -9,6 +9,13 @@ export interface BackendCaseInput extends Omit<MedicalCase, 'id' | 'createdAt' |
 export const secureBackend = {
   isAvailable: () => Boolean(getFirebaseClient()),
 
+  createApplicantAccount: async (email: string, password: string) => {
+    const client = getFirebaseClient();
+    if (!client) throw new Error('Firebase backend is not configured.');
+    const credential = await createUserWithEmailAndPassword(client.auth, email.trim().toLowerCase(), password);
+    return credential.user;
+  },
+
   registerPatient: async (email: string, password: string, displayName: string) => {
     const client = getFirebaseClient();
     if (!client) throw new Error('Firebase backend is not configured.');
