@@ -4827,6 +4827,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -4847,9 +4848,10 @@ export default function App() {
           setUserProfile(profile);
           setLoading(false);
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setUserProfile(null);
+          setAuthError(error instanceof Error ? error.message : 'Unable to load your Clinova account.');
           setLoading(false);
         }
       }
@@ -4857,6 +4859,9 @@ export default function App() {
 
     if (secureBackend.isAvailable()) {
       unsubscribe = authService.subscribeToAuthState(user => {
+        if (!user) {
+          setAuthError('');
+        }
         void loadProfile(user);
       });
     } else {
@@ -4886,6 +4891,27 @@ export default function App() {
   }, []);
 
   if (loading) return <LoadingScreen />;
+
+  if (authError && !userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-lg rounded-3xl border border-red-100 bg-white p-8 shadow-xl text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+            <ShieldCheck className="h-7 w-7" />
+          </div>
+          <p className="text-xs font-black uppercase tracking-widest text-red-500">Account access</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-900">We couldn't load your Clinova profile</h1>
+          <p className="mt-3 text-sm font-medium leading-6 text-slate-500">{authError}</p>
+          <button
+            onClick={() => { setAuthError(''); setShowLogin(true); }}
+            className="mt-6 w-full rounded-2xl bg-slate-900 px-5 py-4 text-sm font-black text-white hover:bg-black"
+          >
+            Return to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>

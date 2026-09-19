@@ -14,12 +14,28 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/profiles/$(uid)).data;
     }
 
+    function hasProfile() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    }
+
     function isAdmin() {
-      return signedIn() && profile(request.auth.uid).role == 'admin';
+      return hasProfile() && profile(request.auth.uid).role == 'admin';
     }
 
     function isClinician() {
-      return signedIn() && profile(request.auth.uid).role == 'clinician';
+      return hasProfile() && profile(request.auth.uid).role == 'clinician';
+    }
+
+    function isPatient() {
+      return hasProfile() && profile(request.auth.uid).role == 'patient';
+    }
+
+    function validOwnPatientProfile() {
+      return isPatient() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.role == 'patient' &&
+        request.resource.data.email == request.auth.token.email;
     }
 
     function hasCaseAssignment(caseId) {
@@ -29,7 +45,7 @@ service cloud.firestore {
 
     match /profiles/{uid} {
       allow read: if isSelf(uid) || isAdmin();
-      allow create: if isSelf(uid) && request.resource.data.role == 'patient';
+      allow create: if isSelf(uid) && validOwnPatientProfile();
       allow update: if isAdmin() ||
         (isSelf(uid) &&
          request.resource.data.diff(resource.data).affectedKeys().hasNone([
@@ -42,7 +58,7 @@ service cloud.firestore {
     }
 
     match /cases/{caseId} {
-      allow create: if signedIn() &&
+      allow create: if isPatient() &&
         request.resource.data.patientId == request.auth.uid;
 
       allow read: if signedIn() &&
@@ -81,7 +97,7 @@ service cloud.firestore {
 
     match /auditLogs/{logId} {
       allow read: if isAdmin();
-      allow create: if signedIn() &&
+      allow create: if hasProfile() &&
         request.resource.data.performedBy == request.auth.uid;
       allow update, delete: if false;
     }
