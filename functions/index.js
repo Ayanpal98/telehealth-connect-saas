@@ -194,3 +194,40 @@ exports.routeNewCase = onDocumentCreated(
     await batch.commit();
   }
 );
+
+
+exports.syncClinicianApplicationToProfile = onDocumentCreated(
+  { document: "clinicianApplications/{uid}", region: "asia-south1" },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const application = snapshot.data();
+    const uid = event.params.uid;
+    const profileRef = db.collection("profiles").doc(uid);
+    const existing = await profileRef.get();
+
+    if (existing.exists) return;
+
+    await profileRef.set({
+      uid,
+      email: application.email,
+      displayName: application.fullName,
+      role: "clinician",
+      specialty: application.specialty || "General Medicine",
+      phone: application.phone || "",
+      registrationNumber: application.registrationNumber || "",
+      locality: application.locality || "",
+      consultationModes: application.consultationModes || [],
+      qualifications: application.qualifications || "",
+      experience: application.experience || "",
+      location: application.location || null,
+      verificationStatus: "pending",
+      acceptingNewCases: false,
+      isAvailable: false,
+      serviceRadiusKm: 10,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    });
+  }
+);
