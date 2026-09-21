@@ -1870,6 +1870,28 @@ const ClinicianDashboard = ({ userProfile }: { userProfile: UserProfile }) => {
     }, 5000);
   };
 
+  // Surface server-created realtime clinician notifications in the workspace.
+  useEffect(() => {
+    const handleRealtimeNotification = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {};
+      addNotification(
+        detail.message || detail.title || 'New consultation request received.',
+        detail.urgency === 'emergency' ? 'warning' : 'info'
+      );
+    };
+
+    window.addEventListener('clinova:consultation-notification', handleRealtimeNotification);
+
+    // Browser notifications are optional; the in-app notification remains the primary channel.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      void Notification.requestPermission().catch(() => {});
+    }
+
+    return () => {
+      window.removeEventListener('clinova:consultation-notification', handleRealtimeNotification);
+    };
+  }, []);
+
   // Keyboard shortcut listener for Emergency Hotkey
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

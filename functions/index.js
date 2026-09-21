@@ -24,6 +24,25 @@ function specialtyScore(profile, specialty) {
   return 0;
 }
 
+function normaliseLocality(value) {
+  return String(value || "").trim().toLowerCase().replace(/\\s+/g, " ");
+}
+
+function sameLocality(patientCase, clinician) {
+  const patientLocality = normaliseLocality(
+    patientCase.locality || patientCase.location?.locality || patientCase.location?.address
+  );
+  const clinicianLocality = normaliseLocality(clinician.locality);
+
+  if (patientLocality && clinicianLocality) {
+    return patientLocality === clinicianLocality ||
+      patientLocality.includes(clinicianLocality) ||
+      clinicianLocality.includes(patientLocality);
+  }
+
+  return Boolean(patientCase.location && clinician.location);
+}
+
 exports.routeNewCase = onDocumentCreated(
   { document: "cases/{caseId}", region: "asia-south1" },
   async (event) => {
@@ -37,6 +56,7 @@ exports.routeNewCase = onDocumentCreated(
       .where("caseId", "==", caseId)
       .limit(1)
       .get();
+
     if (!existing.empty) return;
 
     const recommendedSpecialty =
@@ -51,31 +71,38 @@ exports.routeNewCase = onDocumentCreated(
       .where("role", "==", "clinician")
       .get();
 
-    const patientLocation = medicalCase.location;
     const candidates = [];
 
-    for (const doc of cliniciansSnapshot.docs) {
-      const clinician = doc.data();
+    for (const clinicianDoc of cliniciansSnapshot.docs) {
+      const clinician = clinicianDoc.data();
 
-      if (clinician.verificationStatus === "rejected") continue;
+      if (clinician.verificationStatus !== "verified") continue;
       if (clinician.acceptingNewCases === false) continue;
+      if (clinician.isAvailable === false) continue;
 
       const specialty = specialtyScore(clinician, recommendedSpecialty);
       if (specialty === 0) continue;
 
       let proximity = 0;
       let distance;
-      if (patientLocation && clinician.location) {
-        distance = distanceKm(patientLocation, clinician.location);
-        if (clinician.serviceRadiusKm != null && distance > clinician.serviceRadiusKm) {
+
+      if (medicalCase.location && clinician.location) {
+        distance = distanceKm(medicalCase.location, clinician.location);
+
+        if (clinician.serviceRadiusKm != null &&
+            distance > Number(clinician.serviceRadiusKm)) {
           continue;
         }
+
         proximity = Math.max(0, 30 - Math.min(distance, 30));
+      } else if (!sameLocality(medicalCase, clinician)) {
+        continue;
       }
 
-      const verified = clinician.verificationStatus === "verified" ? 15 : 0;
+      const verified = 15;
       const availability = clinician.isAvailable === true ? 15 : 0;
       const accepting = 5;
+
       const score = Math.min(100, Math.round(
         specialty + proximity + verified + availability + accepting
       ));
@@ -86,10 +113,8 @@ exports.routeNewCase = onDocumentCreated(
           : "Suitable for initial general-care navigation.",
         clinician.isAvailable === true
           ? "Currently marked available."
-          : "Profile is registered but not currently marked available."
-        clinician.verificationStatus === "verified"
-          ? "Profile is verified."
-          : "Profile verification is pending."
+          : "Registered clinician.",
+        "Verified clinician accepting new consultation requests."
       ];
 
       if (distance != null) {
@@ -99,7 +124,7 @@ exports.routeNewCase = onDocumentCreated(
       }
 
       candidates.push({
-        clinicianId: doc.id,
+        clinicianId: clinicianDoc.id,
         clinicianName: clinician.displayName || clinician.email,
         score,
         distance,
@@ -133,6 +158,7 @@ exports.routeNewCase = onDocumentCreated(
 
     for (const candidate of candidates) {
       const assignmentId = `${caseId}_${candidate.clinicianId}`;
+
       batch.set(db.collection("caseAssignments").doc(assignmentId), {
         id: assignmentId,
         caseId,
@@ -156,7 +182,7 @@ exports.routeNewCase = onDocumentCreated(
         title: candidate.clinicianId === primary.clinicianId
           ? "New case assigned to you"
           : "New nearby case available",
-        message: `${medicalCase.patientName} submitted a new consultation request.`,
+        message: `${medicalCase.patientName || "A patient"} submitted a new consultation request.`,
         specialty: recommendedSpecialty,
         urgency,
         matchScore: candidate.score,

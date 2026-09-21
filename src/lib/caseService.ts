@@ -26,9 +26,6 @@ export const caseService = {
       const client = getFirebaseClient();
       if (!client) return () => {};
 
-      // Server-created caseAssignments are the real-time routing channel.
-      // Every matched clinician receives the case immediately without exposing
-      // the global clinician directory to the client.
       const assignmentsQuery = query(
         collection(client.db, 'caseAssignments'),
         where('clinicianId', '==', user.uid),
@@ -36,7 +33,18 @@ export const caseService = {
         limit(50)
       );
 
-      return onSnapshot(assignmentsQuery, async assignmentSnapshot => {
+      const notificationsQuery = query(
+        collection(client.db, 'clinicianNotifications'),
+        where('clinicianId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+
+      let notificationReady = false;
+      let assignmentUnsubscribe: (() => void) | undefined;
+      let notificationUnsubscribe: (() => void) | undefined;
+
+      const emitCases = async (assignmentSnapshot: any) => {
         try {
           const caseSnapshots = await getDocs(
             query(
@@ -51,16 +59,26 @@ export const caseService = {
           const assignedCaseIds = new Set(primaryCases.map(item => item.id));
 
           const routedCases = await Promise.all(
-            assignmentSnapshot.docs.map(async assignmentDoc => {
+            assignmentSnapshot.docs.map(async (assignmentDoc: any) => {
               const assignment = assignmentDoc.data();
               if (assignedCaseIds.has(assignment.caseId)) return null;
+
               const caseSnapshot = await getDoc(doc(client.db, 'cases', assignment.caseId));
-              return caseSnapshot.exists() ? caseSnapshot.data() as MedicalCase : null;
+              return caseSnapshot.exists()
+                ? caseSnapshot.data() as MedicalCase
+                : null;
             })
           );
 
-          const merged = [...primaryCases, ...routedCases.filter(Boolean) as MedicalCase[]];
-          const unique = Array.from(new Map(merged.map(item => [item.id, item])).values());
+          const merged = [
+            ...primaryCases,
+            ...routedCases.filter(Boolean) as MedicalCase[]
+          ];
+
+          const unique = Array.from(
+            new Map(merged.map(item => [item.id, item])).values()
+          );
+
           unique.sort((a, b) => {
             const aTime = a.createdAt?.toMillis?.() ?? new Date(a.createdAt || 0).getTime();
             const bTime = b.createdAt?.toMillis?.() ?? new Date(b.createdAt || 0).getTime();
@@ -72,7 +90,48 @@ export const caseService = {
           console.error('Real-time clinician case subscription failed', error);
           callback([]);
         }
+      };
+
+      assignmentUnsubscribe = onSnapshot(assignmentsQuery, snapshot => {
+        void emitCases(snapshot);
       });
+
+      notificationUnsubscribe = onSnapshot(notificationsQuery, snapshot => {
+        if (!notificationReady) {
+          notificationReady = true;
+          return;
+        }
+
+        snapshot.docChanges()
+          .filter(change => change.type === 'added')
+          .forEach(change => {
+            const notification = change.doc.data();
+
+            window.dispatchEvent(new CustomEvent('clinova:consultation-notification', {
+              detail: {
+                caseId: notification.caseId,
+                title: notification.title || 'New consultation request',
+                message: notification.message || 'A new consultation request is available.',
+                urgency: notification.urgency || 'routine'
+              }
+            }));
+
+            if (
+              typeof Notification !== 'undefined' &&
+              Notification.permission === 'granted'
+            ) {
+              new Notification(notification.title || 'New consultation request', {
+                body: notification.message || 'A new consultation request is available.',
+                tag: notification.caseId || change.doc.id
+              });
+            }
+          });
+      });
+
+      return () => {
+        assignmentUnsubscribe?.();
+        notificationUnsubscribe?.();
+      };
     }
 
     return () => {};
