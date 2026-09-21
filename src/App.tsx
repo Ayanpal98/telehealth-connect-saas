@@ -4781,8 +4781,8 @@ const Login = ({ role, onBack }: { role: 'patient' | 'clinician'; onBack?: () =>
       if (secureBackend.isAvailable() && !password) {
         throw new Error('Enter your password to sign in securely.');
       }
-      await authService.signIn(loginEmail, password, loginEmail.split('@')[0], role);
-      window.dispatchEvent(new Event('auth-change'));
+      const profile = await authService.signIn(loginEmail, password, loginEmail.split('@')[0], role);
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: profile }));
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : 'Sign in failed.');
     } finally {
@@ -4965,7 +4965,14 @@ export default function App() {
       });
     }
 
-    const handleAuthChange = () => {
+    const handleAuthChange = (event: Event) => {
+      const detail = (event as CustomEvent<UserProfile | null>).detail;
+      if (detail) {
+        setAuthError('');
+        setUserProfile(detail);
+        setLoading(false);
+        return;
+      }
       if (!secureBackend.isAvailable()) {
         void authService.getCurrentUser().then(profile => {
           if (!cancelled) setUserProfile(profile);
