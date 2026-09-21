@@ -21,6 +21,8 @@ export interface UserProfile {
   location?: {
     latitude: number;
     longitude: number;
+    accuracyMeters?: number;
+    capturedAt?: string;
   };
   createdAt: any; // ISO string or Timestamp
 }
