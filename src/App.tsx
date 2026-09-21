@@ -4653,21 +4653,29 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: (role: 'patient' | 'clini
   );
 };
 
+const requestPreciseLocation = (): Promise<{ latitude: number; longitude: number; accuracyMeters: number; capturedAt: string }> => new Promise((resolve, reject) => {
+  if (!navigator.geolocation) return reject(new Error('Location services are not supported by this browser.'));
+  navigator.geolocation.getCurrentPosition(p => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracyMeters: Math.round(p.coords.accuracy), capturedAt: new Date().toISOString() }), e => reject(new Error(e.code === 1 ? 'Location permission was denied. Please allow location access.' : 'Unable to determine your location. Please try again.')), { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+});
+
 const PatientRegister = ({ onBack }: { onBack: () => void }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [location, setLocation] = useState<UserProfile['location'] | null>(null);
+  const [locating, setLocating] = useState(false);
+  const captureLocation = async () => { setLocating(true); setError(''); try { setLocation(await requestPreciseLocation()); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to access your location.'); } finally { setLocating(false); } };
 
   const submit = async () => {
-    if (!name.trim() || !email.trim() || password.length < 8) {
-      setError('Enter your name, a valid email, and a password of at least 8 characters.');
+    if (!name.trim() || !email.trim() || password.length < 8 || !location) {
+      setError('Enter your name, email, password (8+ characters), and allow location access.');
       return;
     }
     setBusy(true); setError('');
     try {
-      await secureBackend.registerPatient(email, password, name);
+      await secureBackend.registerPatient(email, password, name, location);
       window.dispatchEvent(new Event('auth-change'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to create your patient account.');
@@ -4687,6 +4695,8 @@ const PatientRegister = ({ onBack }: { onBack: () => void }) => {
           <input className="clinova-input w-full px-5 py-4 font-semibold" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} />
           <input className="clinova-input w-full px-5 py-4 font-semibold" type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} />
           <input className="clinova-input w-full px-5 py-4 font-semibold" type="password" placeholder="Password (8+ characters)" value={password} onChange={e=>setPassword(e.target.value)} />
+          <button type="button" onClick={captureLocation} disabled={locating} className="w-full rounded-2xl border-2 border-blue-100 bg-blue-50 px-5 py-4 text-left font-black text-blue-700">{locating ? "Detecting your location…" : location ? `✓ Location captured (±${location.accuracyMeters ?? 0}m)` : "📍 Use my current location"}</button>
+          <p className="text-xs font-semibold text-slate-400">Used for nearby-care matching. Exact coordinates are not displayed publicly.</p>
           {error && <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-700">{error}</div>}
           <button disabled={busy} onClick={submit} className="w-full clinova-primary rounded-2xl py-4 font-black">{busy ? 'Creating account…' : 'Create Patient Account'}</button>
         </div>
