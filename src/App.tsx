@@ -4710,11 +4710,14 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [location, setLocation] = useState<UserProfile['location'] | null>(null);
+  const [locating, setLocating] = useState(false);
   const set=(key:string,value:string)=>setForm(prev=>({...prev,[key]:value}));
+  const captureLocation = async () => { setLocating(true); setError(''); try { setLocation(await requestPreciseLocation()); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to access your location.'); } finally { setLocating(false); } };
 
   const submit = async () => {
-    if (!form.fullName || !form.email || form.password.length < 8 || !form.phone || !form.specialty || !form.registrationNumber || !form.qualifications) {
-      setError('Please complete your name, email, password, phone, specialty, professional registration number, and qualifications.');
+    if (!form.fullName || !form.email || form.password.length < 8 || !form.phone || !form.specialty || !form.registrationNumber || !form.qualifications || !location) {
+      setError('Please complete your professional details and allow location access for locality-based matching.');
       return;
     }
     setBusy(true); setError('');
@@ -4722,7 +4725,7 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
       await secureBackend.createApplicantAccount(form.email, form.password);
       await secureBackend.submitClinicianApplication({
         fullName: form.fullName, email: form.email, phone: form.phone, specialty: form.specialty,
-        registrationNumber: form.registrationNumber, locality: form.locality,
+        registrationNumber: form.registrationNumber, locality: form.locality, location,
         consultationModes: form.consultationModes.split(',').map(x=>x.trim()).filter(Boolean),
         qualifications: form.qualifications, experience: form.experience
       });
@@ -4759,6 +4762,7 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
             ['fullName','Full name'],['email','Professional email'],['phone','Phone number'],['specialty','Specialty'],['registrationNumber','Professional registration number'],['locality','City / locality'],['qualifications','Qualifications'],['experience','Experience summary']
           ].map(([key,placeholder])=><input key={key} className="clinova-input px-5 py-4 font-semibold" type={key==='email'?'email':'text'} placeholder={placeholder} value={(form as any)[key]} onChange={e=>set(key,e.target.value)} />)}
           <input className="clinova-input px-5 py-4 font-semibold" type="password" placeholder="Create password (8+ characters)" value={form.password} onChange={e=>set('password',e.target.value)} />
+          <button type="button" onClick={captureLocation} disabled={locating} className="md:col-span-2 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-left font-black text-indigo-700">{locating ? "Detecting practice location…" : location ? `✓ Practice location captured (±${location.accuracyMeters ?? 0}m)` : "📍 Use current practice location"}</button>
           <input className="clinova-input px-5 py-4 font-semibold" placeholder="Consultation modes: chat, audio, video" value={form.consultationModes} onChange={e=>set('consultationModes',e.target.value)} />
         </div>
         {error && <div role="alert" className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-700">{error}</div>}
