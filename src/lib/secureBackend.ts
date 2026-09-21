@@ -16,7 +16,7 @@ export const secureBackend = {
     return credential.user;
   },
 
-  registerPatient: async (email: string, password: string, displayName: string) => {
+  registerPatient: async (email: string, password: string, displayName: string, location?: UserProfile['location']) => {
     const client = getFirebaseClient();
     if (!client) throw new Error('Firebase backend is not configured.');
     const credential = await createUserWithEmailAndPassword(client.auth, email.trim().toLowerCase(), password);
@@ -27,6 +27,7 @@ export const secureBackend = {
       role: 'patient',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      ...(location ? { location } : {}),
     });
     return credential.user;
   },
@@ -41,6 +42,7 @@ export const secureBackend = {
     consultationModes: string[];
     qualifications: string;
     experience: string;
+    location?: UserProfile['location'];
   }) => {
     const client = getFirebaseClient();
     if (!client?.auth.currentUser) throw new Error('Please create your clinician application account first.');
