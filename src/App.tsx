@@ -4763,16 +4763,21 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
 
 const Login = ({ role, onBack }: { role: 'patient' | 'clinician'; onBack?: () => void }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const handleLogin = async () => {
     setIsLoading(true);
     setLoginError('');
     setResetMessage('');
     try {
-      const loginEmail = email.trim() || (secureBackend.isAvailable() ? '' : `user_${Math.random().toString(36).substring(7)}@example.com`);
+      const loginEmail = email.trim();
+      if (!loginEmail) {
+        throw new Error('Enter your email address.');
+      }
       if (secureBackend.isAvailable() && !password) {
         throw new Error('Enter your password to sign in securely.');
       }
