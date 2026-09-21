@@ -3549,15 +3549,16 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: (role: 'patient' | 'clini
           </div>
 
           {/* Right Action CTA Buttons */}
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => onGetStarted(activeTab)}
-              className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors px-3 py-2"
-            >
-              Sign In
+          <div className="flex items-center gap-2">
+            <button onClick={() => onGetStarted('patient')} className="hidden md:inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-100">
+              <UserIcon className="w-4 h-4" /> Patient Login
             </button>
+            <button onClick={() => onGetStarted('clinician')} className="hidden md:inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm font-black text-indigo-700 hover:bg-indigo-100">
+              <Users className="w-4 h-4" /> Clinician Login
+            </button>
+            <button onClick={() => onGetStarted('patient')} className="md:hidden text-sm font-bold text-slate-600 hover:text-blue-600 px-3 py-2">Sign In</button>
             <button 
-              onClick={() => onGetStarted(activeTab)}
+              onClick={() => onGetStarted('patient')}
               className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-100 flex items-center gap-1.5 group"
             >
               Get Started
