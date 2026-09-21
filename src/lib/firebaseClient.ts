@@ -14,14 +14,26 @@ const config = {
 
 export const isFirebaseConfigured = Object.values(config).every(Boolean);
 
+let firebaseClient: { app: FirebaseApp; auth: Auth; db: Firestore; storage: FirebaseStorage } | null = null;
+let persistenceReady: Promise<void> | null = null;
+
 export function getFirebaseClient(): { app: FirebaseApp; auth: Auth; db: Firestore; storage: FirebaseStorage } | null {
   if (!isFirebaseConfigured) return null;
+  if (firebaseClient) return firebaseClient;
+
   const app = getApps().length ? getApp() : initializeApp(config);
   const auth = getAuth(app);
 
-  // Keep the authenticated session across page refreshes/browser restarts.
-  // This is Firebase-managed persistence; no credentials are stored in localStorage by Clinova.
-  void setPersistence(auth, browserLocalPersistence).catch(() => undefined);
+  // Configure persistence once, before authentication operations begin.
+  // This avoids racing sign-in/auth-state listeners against Firebase persistence setup.
+  persistenceReady = setPersistence(auth, browserLocalPersistence).catch(error => {
+    console.warn('Clinova: browser auth persistence could not be enabled.', error);
+  });
 
-  return { app, auth, db: getFirestore(app), storage: getStorage(app) };
+  firebaseClient = { app, auth, db: getFirestore(app), storage: getStorage(app) };
+  return firebaseClient;
+}
+
+export async function waitForFirebasePersistence(): Promise<void> {
+  await persistenceReady;
 }

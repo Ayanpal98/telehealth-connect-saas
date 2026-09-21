@@ -3549,15 +3549,16 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: (role: 'patient' | 'clini
           </div>
 
           {/* Right Action CTA Buttons */}
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => onGetStarted(activeTab)}
-              className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors px-3 py-2"
-            >
-              Sign In
+          <div className="flex items-center gap-2">
+            <button onClick={() => onGetStarted('patient')} className="hidden md:inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-black text-blue-700 hover:bg-blue-100">
+              <UserIcon className="w-4 h-4" /> Patient Login
             </button>
+            <button onClick={() => onGetStarted('clinician')} className="hidden md:inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm font-black text-indigo-700 hover:bg-indigo-100">
+              <Users className="w-4 h-4" /> Clinician Login
+            </button>
+            <button onClick={() => onGetStarted('patient')} className="md:hidden text-sm font-bold text-slate-600 hover:text-blue-600 px-3 py-2">Sign In</button>
             <button 
-              onClick={() => onGetStarted(activeTab)}
+              onClick={() => onGetStarted('patient')}
               className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full font-bold text-sm transition-all shadow-lg shadow-blue-100 flex items-center gap-1.5 group"
             >
               Get Started
@@ -4653,21 +4654,29 @@ const WelcomePage = ({ onGetStarted }: { onGetStarted: (role: 'patient' | 'clini
   );
 };
 
+const requestPreciseLocation = (): Promise<{ latitude: number; longitude: number; accuracyMeters: number; capturedAt: string }> => new Promise((resolve, reject) => {
+  if (!navigator.geolocation) return reject(new Error('Location services are not supported by this browser.'));
+  navigator.geolocation.getCurrentPosition(p => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracyMeters: Math.round(p.coords.accuracy), capturedAt: new Date().toISOString() }), e => reject(new Error(e.code === 1 ? 'Location permission was denied. Please allow location access.' : 'Unable to determine your location. Please try again.')), { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+});
+
 const PatientRegister = ({ onBack }: { onBack: () => void }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [location, setLocation] = useState<UserProfile['location'] | null>(null);
+  const [locating, setLocating] = useState(false);
+  const captureLocation = async () => { setLocating(true); setError(''); try { setLocation(await requestPreciseLocation()); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to access your location.'); } finally { setLocating(false); } };
 
   const submit = async () => {
-    if (!name.trim() || !email.trim() || password.length < 8) {
-      setError('Enter your name, a valid email, and a password of at least 8 characters.');
+    if (!name.trim() || !email.trim() || password.length < 8 || !location) {
+      setError('Enter your name, email, password (8+ characters), and allow location access.');
       return;
     }
     setBusy(true); setError('');
     try {
-      await secureBackend.registerPatient(email, password, name);
+      await secureBackend.registerPatient(email, password, name, location);
       window.dispatchEvent(new Event('auth-change'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to create your patient account.');
@@ -4687,6 +4696,8 @@ const PatientRegister = ({ onBack }: { onBack: () => void }) => {
           <input className="clinova-input w-full px-5 py-4 font-semibold" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} />
           <input className="clinova-input w-full px-5 py-4 font-semibold" type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} />
           <input className="clinova-input w-full px-5 py-4 font-semibold" type="password" placeholder="Password (8+ characters)" value={password} onChange={e=>setPassword(e.target.value)} />
+          <button type="button" onClick={captureLocation} disabled={locating} className="w-full rounded-2xl border-2 border-blue-100 bg-blue-50 px-5 py-4 text-left font-black text-blue-700">{locating ? "Detecting your location…" : location ? `✓ Location captured (±${location.accuracyMeters ?? 0}m)` : "📍 Use my current location"}</button>
+          <p className="text-xs font-semibold text-slate-400">Used for nearby-care matching. Exact coordinates are not displayed publicly.</p>
           {error && <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-700">{error}</div>}
           <button disabled={busy} onClick={submit} className="w-full clinova-primary rounded-2xl py-4 font-black">{busy ? 'Creating account…' : 'Create Patient Account'}</button>
         </div>
@@ -4700,11 +4711,14 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [location, setLocation] = useState<UserProfile['location'] | null>(null);
+  const [locating, setLocating] = useState(false);
   const set=(key:string,value:string)=>setForm(prev=>({...prev,[key]:value}));
+  const captureLocation = async () => { setLocating(true); setError(''); try { setLocation(await requestPreciseLocation()); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to access your location.'); } finally { setLocating(false); } };
 
   const submit = async () => {
-    if (!form.fullName || !form.email || form.password.length < 8 || !form.phone || !form.specialty || !form.registrationNumber || !form.qualifications) {
-      setError('Please complete your name, email, password, phone, specialty, professional registration number, and qualifications.');
+    if (!form.fullName || !form.email || form.password.length < 8 || !form.phone || !form.specialty || !form.registrationNumber || !form.qualifications || !location) {
+      setError('Please complete your professional details and allow location access for locality-based matching.');
       return;
     }
     setBusy(true); setError('');
@@ -4712,7 +4726,7 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
       await secureBackend.createApplicantAccount(form.email, form.password);
       await secureBackend.submitClinicianApplication({
         fullName: form.fullName, email: form.email, phone: form.phone, specialty: form.specialty,
-        registrationNumber: form.registrationNumber, locality: form.locality,
+        registrationNumber: form.registrationNumber, locality: form.locality, location,
         consultationModes: form.consultationModes.split(',').map(x=>x.trim()).filter(Boolean),
         qualifications: form.qualifications, experience: form.experience
       });
@@ -4749,6 +4763,7 @@ const ClinicianApply = ({ onBack }: { onBack: () => void }) => {
             ['fullName','Full name'],['email','Professional email'],['phone','Phone number'],['specialty','Specialty'],['registrationNumber','Professional registration number'],['locality','City / locality'],['qualifications','Qualifications'],['experience','Experience summary']
           ].map(([key,placeholder])=><input key={key} className="clinova-input px-5 py-4 font-semibold" type={key==='email'?'email':'text'} placeholder={placeholder} value={(form as any)[key]} onChange={e=>set(key,e.target.value)} />)}
           <input className="clinova-input px-5 py-4 font-semibold" type="password" placeholder="Create password (8+ characters)" value={form.password} onChange={e=>set('password',e.target.value)} />
+          <button type="button" onClick={captureLocation} disabled={locating} className="md:col-span-2 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-left font-black text-indigo-700">{locating ? "Detecting practice location…" : location ? `✓ Practice location captured (±${location.accuracyMeters ?? 0}m)` : "📍 Use current practice location"}</button>
           <input className="clinova-input px-5 py-4 font-semibold" placeholder="Consultation modes: chat, audio, video" value={form.consultationModes} onChange={e=>set('consultationModes',e.target.value)} />
         </div>
         {error && <div role="alert" className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-700">{error}</div>}
@@ -4781,8 +4796,8 @@ const Login = ({ role, onBack }: { role: 'patient' | 'clinician'; onBack?: () =>
       if (secureBackend.isAvailable() && !password) {
         throw new Error('Enter your password to sign in securely.');
       }
-      await authService.signIn(loginEmail, password, loginEmail.split('@')[0], role);
-      window.dispatchEvent(new Event('auth-change'));
+      const profile = await authService.signIn(loginEmail, password, loginEmail.split('@')[0], role);
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: profile }));
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : 'Sign in failed.');
     } finally {
@@ -4965,7 +4980,14 @@ export default function App() {
       });
     }
 
-    const handleAuthChange = () => {
+    const handleAuthChange = (event: Event) => {
+      const detail = (event as CustomEvent<UserProfile | null>).detail;
+      if (detail) {
+        setAuthError('');
+        setUserProfile(detail);
+        setLoading(false);
+        return;
+      }
       if (!secureBackend.isAvailable()) {
         void authService.getCurrentUser().then(profile => {
           if (!cancelled) setUserProfile(profile);
