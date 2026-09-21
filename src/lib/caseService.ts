@@ -40,7 +40,6 @@ export const caseService = {
         limit(50)
       );
 
-      let assignmentReady = false;
       let notificationReady = false;
       let assignmentUnsubscribe: (() => void) | undefined;
       let notificationUnsubscribe: (() => void) | undefined;
@@ -94,7 +93,6 @@ export const caseService = {
       };
 
       assignmentUnsubscribe = onSnapshot(assignmentsQuery, snapshot => {
-        assignmentReady = true;
         void emitCases(snapshot);
       });
 
@@ -131,8 +129,8 @@ export const caseService = {
       });
 
       return () => {
-        if (assignmentReady) assignmentUnsubscribe?.();
-        if (notificationReady) notificationUnsubscribe?.();
+        assignmentUnsubscribe?.();
+        notificationUnsubscribe?.();
       };
     }
 
